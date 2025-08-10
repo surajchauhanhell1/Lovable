@@ -3,12 +3,13 @@ import { createGroq } from '@ai-sdk/groq';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import type { SandboxState } from '@/types/sandbox';
+import type { SandboxState, SandboxFile } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
 import { executeSearchPlan, formatSearchResultsForAI, selectTargetFile } from '@/lib/file-search-executor';
 import { FileManifest } from '@/types/file-manifest';
 import type { ConversationState, ConversationMessage, ConversationEdit } from '@/types/conversation';
 import { appConfig } from '@/config/app.config';
+import {createOpenAICompatible} from "@ai-sdk/openai-compatible";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
@@ -21,6 +22,12 @@ const anthropic = createAnthropic({
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openaiCompatible = createOpenAICompatible({
+  name: process.env.OPENAI_COMPATIBLE_MODEL!,
+  apiKey: process.env.OPENAI_COMPATIBLE_API_KEY,
+  baseURL: process.env.OPENAI_COMPATIBLE_BASE_URL!,
 });
 
 // Helper function to analyze user preferences from conversation history
@@ -65,6 +72,7 @@ function analyzeUserPreferences(messages: ConversationMessage[]): {
 declare global {
   var sandboxState: SandboxState;
   var conversationState: ConversationState | null;
+  var activeSandbox: any;
 }
 
 export async function POST(request: NextRequest) {
@@ -152,7 +160,7 @@ export async function POST(request: NextRequest) {
         // No keep-alive needed - sandbox provisioned for 10 minutes
         
         // Check if we have a file manifest for edit mode
-        let editContext = null;
+        let editContext: any = null;
         let enhancedSystemPrompt = '';
         
         if (isEdit) {
@@ -165,61 +173,62 @@ export async function POST(request: NextRequest) {
           if (manifest) {
             await sendProgress({ type: 'status', message: '🔍 Creating search plan...' });
             
-            const fileContents = global.sandboxState.fileCache.files;
-            console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
+            const fileContents = global.sandboxState.fileCache?.files;
+            if (fileContents) {
+              console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
             
-            // STEP 1: Get search plan from AI
-            try {
-              const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, manifest, model })
-              });
-              
-              if (intentResponse.ok) {
-                const { searchPlan } = await intentResponse.json();
-                console.log('[generate-ai-code-stream] Search plan received:', searchPlan);
-                
-                await sendProgress({ 
-                  type: 'status', 
-                  message: `🔎 Searching for: "${searchPlan.searchTerms.join('", "')}"`
+              // STEP 1: Get search plan from AI
+              try {
+                const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ prompt, manifest, model })
                 });
                 
-                // STEP 2: Execute the search plan
-                const searchExecution = executeSearchPlan(searchPlan, 
-                  Object.fromEntries(
-                    Object.entries(fileContents).map(([path, data]) => [
-                      path.startsWith('/') ? path : `/home/user/app/${path}`,
-                      data.content
-                    ])
-                  )
-                );
-                
-                console.log('[generate-ai-code-stream] Search execution:', {
-                  success: searchExecution.success,
-                  resultsCount: searchExecution.results.length,
-                  filesSearched: searchExecution.filesSearched,
-                  time: searchExecution.executionTime + 'ms'
-                });
-                
-                if (searchExecution.success && searchExecution.results.length > 0) {
-                  // STEP 3: Select the best target file
-                  const target = selectTargetFile(searchExecution.results, searchPlan.editType);
+                if (intentResponse.ok) {
+                  const { searchPlan } = await intentResponse.json();
+                  console.log('[generate-ai-code-stream] Search plan received:', searchPlan);
                   
-                  if (target) {
-                    await sendProgress({ 
-                      type: 'status', 
-                      message: `✅ Found code in ${target.filePath.split('/').pop()} at line ${target.lineNumber}`
-                    });
+                  await sendProgress({
+                    type: 'status',
+                    message: `🔎 Searching for: "${searchPlan.searchTerms.join('", "')}"`
+                  });
+                  
+                  // STEP 2: Execute the search plan
+                  const searchExecution = executeSearchPlan(searchPlan,
+                    Object.fromEntries(
+                      Object.entries(fileContents).map(([path, data]) => [
+                        path.startsWith('/') ? path : `/home/user/app/${path}`,
+                        data.content
+                      ])
+                    )
+                  );
+                
+                  console.log('[generate-ai-code-stream] Search execution:', {
+                    success: searchExecution.success,
+                    resultsCount: searchExecution.results.length,
+                    filesSearched: searchExecution.filesSearched,
+                    time: searchExecution.executionTime + 'ms'
+                  });
+                
+                  if (searchExecution.success && searchExecution.results.length > 0) {
+                    // STEP 3: Select the best target file
+                    const target = selectTargetFile(searchExecution.results, searchPlan.editType);
                     
-                    console.log('[generate-ai-code-stream] Target selected:', target);
-                    
-                    // Create surgical edit context with exact location
-                    const normalizedPath = target.filePath.replace('/home/user/app/', '');
-                    const fileContent = fileContents[normalizedPath]?.content || '';
-                    
-                    // Build enhanced context with search results
-                    enhancedSystemPrompt = `
+                    if (target) {
+                      await sendProgress({ 
+                        type: 'status', 
+                        message: `✅ Found code in ${target.filePath.split('/').pop()} at line ${target.lineNumber}`
+                      });
+                      
+                      console.log('[generate-ai-code-stream] Target selected:', target);
+                      
+                      // Create surgical edit context with exact location
+                      const normalizedPath = target.filePath.replace('/home/user/app/', '');
+                      const fileContent = fileContents?.[normalizedPath]?.content || '';
+                      
+                      // Build enhanced context with search results
+                      enhancedSystemPrompt = `
 ${formatSearchResultsForAI(searchExecution.results)}
 
 SURGICAL EDIT INSTRUCTIONS:
@@ -230,43 +239,44 @@ You have been given the EXACT location of the code to edit.
 
 Make ONLY the change requested by the user. Do not modify any other code.
 User request: "${prompt}"`;
-                    
-                    // Set up edit context with just this one file
-                    editContext = {
-                      primaryFiles: [target.filePath],
-                      contextFiles: [],
-                      systemPrompt: enhancedSystemPrompt,
-                      editIntent: {
-                        type: searchPlan.editType,
-                        description: searchPlan.reasoning,
-                        targetFiles: [target.filePath],
-                        confidence: 0.95, // High confidence since we found exact location
-                        searchTerms: searchPlan.searchTerms
-                      }
-                    };
-                    
-                    console.log('[generate-ai-code-stream] Surgical edit context created');
+                      
+                      // Set up edit context with just this one file
+                      editContext = {
+                        primaryFiles: [target.filePath],
+                        contextFiles: [],
+                        systemPrompt: enhancedSystemPrompt,
+                        editIntent: {
+                          type: searchPlan.editType,
+                          description: searchPlan.reasoning,
+                          targetFiles: [target.filePath],
+                          confidence: 0.95, // High confidence since we found exact location
+                          searchTerms: searchPlan.searchTerms
+                        }
+                      };
+                      
+                      console.log('[generate-ai-code-stream] Surgical edit context created');
+                    }
+                  } else {
+                    // Search failed - fall back to old behavior but inform user
+                    console.warn('[generate-ai-code-stream] Search found no results, falling back to broader context');
+                    await sendProgress({
+                      type: 'status',
+                      message: '⚠️ Could not find exact match, using broader search...'
+                    });
                   }
                 } else {
-                  // Search failed - fall back to old behavior but inform user
-                  console.warn('[generate-ai-code-stream] Search found no results, falling back to broader context');
-                  await sendProgress({ 
-                    type: 'status', 
-                    message: '⚠️ Could not find exact match, using broader search...'
-                  });
+                  console.error('[generate-ai-code-stream] Failed to get search plan');
                 }
-              } else {
-                console.error('[generate-ai-code-stream] Failed to get search plan');
-              }
-            } catch (error) {
-              console.error('[generate-ai-code-stream] Error in agentic search workflow:', error);
-              await sendProgress({ 
-                type: 'status', 
-                message: '⚠️ Search workflow error, falling back to keyword method...'
-              });
-              // Fall back to old method on any error if we have a manifest
-              if (manifest) {
-                editContext = selectFilesForEdit(prompt, manifest);
+              } catch (error) {
+                console.error('[generate-ai-code-stream] Error in agentic search workflow:', error);
+                await sendProgress({ 
+                  type: 'status', 
+                  message: '⚠️ Search workflow error, falling back to keyword method...'
+                });
+                // Fall back to old method on any error if we have a manifest
+                if (manifest) {
+                  editContext = selectFilesForEdit(prompt, manifest);
+                }
               }
             }
           } else {
@@ -326,7 +336,7 @@ User request: "${prompt}"`;
                         
                         // For now, fall back to keyword search since we don't have file contents for search execution
                         // This path happens when no manifest was initially available
-                        let targetFiles = [];
+                        let targetFiles: string[] = [];
                         if (!searchPlan || searchPlan.searchTerms.length === 0) {
                           console.warn('[generate-ai-code-stream] No target files after fetch, searching for relevant files');
                           
@@ -459,15 +469,15 @@ Remember: You are a SURGEON making a precise incision, not an artist repainting 
                 }
               } catch (error) {
                 console.error('[generate-ai-code-stream] Error fetching sandbox files:', error);
-                await sendProgress({ 
-                  type: 'warning', 
+                await sendProgress({
+                  type: 'warning',
                   message: 'Could not analyze existing files for targeted edits. Proceeding with general edit mode.'
                 });
               }
             } else {
               console.log('[generate-ai-code-stream] No active sandbox to fetch files from');
-              await sendProgress({ 
-                type: 'warning', 
+              await sendProgress({
+                type: 'warning',
                 message: 'No existing files found. Consider generating initial code first.'
               });
             }
@@ -906,7 +916,7 @@ CRITICAL: When files are provided in the context:
           }
           
           // Use backend file cache instead of frontend-provided files
-          let backendFiles = global.sandboxState?.fileCache?.files || {};
+          let backendFiles: Record<string, SandboxFile> = global.sandboxState?.fileCache?.files || {};
           let hasBackendFiles = Object.keys(backendFiles).length > 0;
           
           console.log('[generate-ai-code-stream] Backend file cache status:');
@@ -936,27 +946,31 @@ CRITICAL: When files are provided in the context:
                       fileCache: {
                         files: {},
                         lastSync: Date.now(),
-                        sandboxId: context?.sandboxId || 'unknown'
+                        sandboxId: context?.sandboxId || 'unknown',
+                        manifest: undefined
                       }
                     } as any;
                   } else if (!global.sandboxState.fileCache) {
                     global.sandboxState.fileCache = {
                       files: {},
                       lastSync: Date.now(),
-                      sandboxId: context?.sandboxId || 'unknown'
+                      sandboxId: context?.sandboxId || 'unknown',
+                      manifest: undefined
                     };
                   }
                   
                   // Store files in cache
                   for (const [path, content] of Object.entries(filesData.files)) {
                     const normalizedPath = path.replace('/home/user/app/', '');
-                    global.sandboxState.fileCache.files[normalizedPath] = {
-                      content: content as string,
-                      lastModified: Date.now()
-                    };
+                    if (global.sandboxState.fileCache) {
+                      global.sandboxState.fileCache.files[normalizedPath] = {
+                        content: content as string,
+                        lastModified: Date.now()
+                      };
+                    }
                   }
                   
-                  if (filesData.manifest) {
+                  if (filesData.manifest && global.sandboxState.fileCache) {
                     global.sandboxState.fileCache.manifest = filesData.manifest;
                     
                     // Now try to analyze edit intent with the fetched manifest
@@ -988,7 +1002,7 @@ CRITICAL: When files are provided in the context:
                   }
                   
                   // Update variables
-                  backendFiles = global.sandboxState.fileCache.files;
+                  backendFiles = global.sandboxState.fileCache?.files || {};
                   hasBackendFiles = Object.keys(backendFiles).length > 0;
                   console.log('[generate-ai-code-stream] Updated backend cache with fetched files');
                 }
@@ -1149,13 +1163,28 @@ CRITICAL: When files are provided in the context:
         // Determine which provider to use based on model
         const isAnthropic = model.startsWith('anthropic/');
         const isOpenAI = model.startsWith('openai/gpt-5');
-        const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : groq);
-        const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
+        const isCompatible = model === 'openaiCompatible';
+        const isGPT5 = model.startsWith('openai/gpt-5');
+
+        const modelProvider = isAnthropic
+          ? anthropic
+          : isOpenAI
+          ? openai
+          : isCompatible
+          ? openaiCompatible
+          : groq;
+
+        const actualModel = isAnthropic
+          ? model.replace('anthropic/', '')
+          : isOpenAI
+          ? 'gpt-5'
+          : isCompatible
+          ? process.env.OPENAI_COMPATIBLE_MODEL
+          : model;
         
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
-          model: modelProvider(actualModel),
+          model: modelProvider(actualModel as string),
           messages: [
             { 
               role: 'system', 
@@ -1583,21 +1612,22 @@ Provide the complete file content without any truncation. Include all necessary 
                   completionClient = openai;
                 } else if (model.includes('claude')) {
                   completionClient = anthropic;
+                } else if (model === 'openaiCompatible') {
+                  completionClient = openaiCompatible;
                 } else {
                   completionClient = groq;
                 }
                 
                 const completionResult = await streamText({
-                  model: completionClient(modelMapping[model] || model),
+                  model: completionClient(actualModel as string),
                   messages: [
-                    { 
-                      role: 'system', 
+                    {
+                      role: 'system',
                       content: 'You are completing a truncated file. Provide the complete, working file content.'
                     },
                     { role: 'user', content: completionPrompt }
                   ],
                   temperature: isGPT5 ? undefined : appConfig.ai.defaultTemperature,
-                  maxTokens: appConfig.ai.truncationRecoveryMaxTokens
                 });
                 
                 // Get the full text from the stream
