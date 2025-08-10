@@ -161,6 +161,14 @@ function AISandboxPage() {
       const sandboxIdParam = searchParams.get('sandbox');
       const remixParam = searchParams.get('remix');
 
+      // If sandbox is in URL, immediately switch to editor layout
+      if (sandboxIdParam) {
+        setShowHomeScreen(false);
+        setHomeScreenFading(false);
+        setActiveTab('preview');
+        setUrlOverlayVisible(false);
+      }
+
       if (sandboxIdParam && remixParam === '1') {
         // Remix mode: duplicate source sandbox, then navigate to new sandbox
         console.log('[home] Remixing from sandbox:', sandboxIdParam);
@@ -177,6 +185,9 @@ function AISandboxPage() {
             updateStatus('Sandbox active', true);
             setActiveTab('preview');
             setLoading(false);
+            setShowHomeScreen(false);
+            setHomeScreenFading(false);
+            setUrlOverlayVisible(false);
             // Replace URL with new sandbox and drop remix flag
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.set('sandbox', data.sandboxId);
@@ -208,6 +219,9 @@ function AISandboxPage() {
             // Ensure we land on the preview tab showing iframe
             setActiveTab('preview');
             setLoading(false);
+            setShowHomeScreen(false);
+            setHomeScreenFading(false);
+            setUrlOverlayVisible(false);
             // Optionally trigger file fetch to hydrate tree
             setTimeout(fetchSandboxFiles, 1000);
             return;
@@ -3026,7 +3040,18 @@ Focus on the key sections and content, making it clean and modern.`;
       
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <span className="text-xl font-semibold">KPPM</span>
+          <button
+            type="button"
+            className="text-xl font-semibold hover:opacity-80 transition-opacity"
+            onClick={() => {
+              setShowHomeScreen(true);
+              setHomeScreenFading(false);
+              router.push('/');
+            }}
+            aria-label="Go to home"
+          >
+            KPPM
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {/* Model Selector - Left side */}
