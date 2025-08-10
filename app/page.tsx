@@ -2779,11 +2779,6 @@ Focus on the key sections and content, making it clean and modern.`;
             <span className="text-white text-2xl font-bold tracking-wide">KPPM</span>
           </div>
           
-          {/* Explore Library under the top bar on home overlay */}
-          <div className="relative z-10 mt-16 px-4">
-            <ExploreLibrary />
-          </div>
-
           {/* Main content */}
           <div className="relative z-10 h-full flex items-center justify-center px-4">
             <div className="text-center max-w-4xl min-w-[600px] mx-auto">
@@ -2947,7 +2942,12 @@ Focus on the key sections and content, making it clean and modern.`;
                     </div>
                   )}
               </form>
-              
+
+              {/* Explore Library placed directly under the prompt bar */}
+              <div className="mt-6">
+                <ExploreLibrary />
+              </div>
+
               {/* Model Selector */}
               <div className="mt-6 flex items-center justify-center animate-[fadeIn_1s_ease-out]">
                 <select
@@ -3389,10 +3389,7 @@ Focus on the key sections and content, making it clean and modern.`;
               )}
             </div>
           </div>
-          {/* Explore Library: visible under the bar when on preview tab */}
-          {activeTab === 'preview' && (
-            <ExploreLibrary />
-          )}
+          {/* Explore Library: render below the prompt bar on home screen only */}
           <div className="flex-1 relative overflow-hidden">
             {renderMainContent()}
           </div>
