@@ -159,8 +159,40 @@ function AISandboxPage() {
 
       // Check if sandbox ID is in URL
       const sandboxIdParam = searchParams.get('sandbox');
+      const remixParam = searchParams.get('remix');
 
-      if (sandboxIdParam) {
+      if (sandboxIdParam && remixParam === '1') {
+        // Remix mode: duplicate source sandbox, then navigate to new sandbox
+        console.log('[home] Remixing from sandbox:', sandboxIdParam);
+        setLoading(true);
+        try {
+          const res = await fetch('/api/remix-sandbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceSandboxId: sandboxIdParam }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSandboxData({ sandboxId: data.sandboxId, url: data.url });
+            updateStatus('Sandbox active', true);
+            setActiveTab('preview');
+            setLoading(false);
+            // Replace URL with new sandbox and drop remix flag
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.set('sandbox', data.sandboxId);
+            newParams.set('model', aiModel);
+            newParams.delete('remix');
+            router.replace(`/?${newParams.toString()}`, { scroll: false });
+            setTimeout(fetchSandboxFiles, 1000);
+            return;
+          }
+          console.warn('[home] Remix failed, falling back to new sandbox...');
+          await createSandbox(true);
+        } catch (error) {
+          console.error('[ai-sandbox] Failed to remix sandbox:', error);
+          await createSandbox(true);
+        }
+      } else if (sandboxIdParam) {
         console.log('[home] Attempting to restore sandbox:', sandboxIdParam);
         setLoading(true);
         try {
@@ -186,10 +218,6 @@ function AISandboxPage() {
           console.error('[ai-sandbox] Failed to restore sandbox:', error);
           await createSandbox(true);
         }
-      } else {
-        // Automatically create new sandbox
-        console.log('[home] No sandbox in URL, creating new sandbox automatically...');
-        await createSandbox(true);
       }
     };
 
@@ -1501,7 +1529,9 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     let sandboxPromise: Promise<void> | null = null;
     let sandboxCreating = false;
     
-    if (!sandboxData) {
+    const remixSandboxId = searchParams.get('sandbox');
+    const isRemixMode = !!remixSandboxId;
+    if (!sandboxData && !isRemixMode) {
       sandboxCreating = true;
       addChatMessage('Creating sandbox while I plan your app...', 'system');
       sandboxPromise = createSandbox(true).catch((error: any) => {
@@ -2370,11 +2400,13 @@ Focus on the key sections and content, making it clean and modern while preservi
     addChatMessage(`Starting to clone ${cleanUrl}...`, 'system');
     
     // Start creating sandbox and capturing screenshot immediately in parallel
-    const sandboxPromise = !sandboxData ? createSandbox(true) : Promise.resolve();
+    const remixSandboxId = searchParams.get('sandbox');
+    const isRemixMode = !!remixSandboxId;
+    const sandboxPromise = !sandboxData && !isRemixMode ? createSandbox(true) : Promise.resolve();
     
     // Only capture screenshot if we don't already have a sandbox (first generation)
     // After sandbox is set up, skip the screenshot phase for faster generation
-    if (!sandboxData) {
+    if (!sandboxData && !isRemixMode) {
       captureUrlScreenshot(displayUrl);
     }
     
