@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,15 @@ interface ChatMessage {
   };
 }
 
-export default function AISandboxPage() {
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <AISandboxPage />
+    </Suspense>
+  );
+}
+
+function AISandboxPage() {
   const [sandboxData, setSandboxData] = useState<SandboxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ text: 'Not connected', active: false });
@@ -1393,7 +1401,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
               ref={iframeRef}
               src={sandboxData.url}
               className="w-full h-full border-none"
-              title="Open Lovable Sandbox"
+              title="KPPM Sandbox"
               allow="clipboard-write"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             />
@@ -2790,8 +2798,8 @@ Focus on the key sections and content, making it clean and modern.`;
               {/* Firecrawl-style Header */}
               <div className="text-center">
                 <h1 className="text-[2.5rem] lg:text-[3.8rem] text-center text-[#36322F] font-semibold tracking-tight leading-[0.9] animate-[fadeIn_0.8s_ease-out]">
-                  <span className="hidden md:inline">Open Lovable</span>
-                  <span className="md:hidden">Open Lovable</span>
+                  <span className="hidden md:inline">KPPM</span>
+                  <span className="md:hidden">KPPM</span>
                 </h1>
                 <motion.p 
                   className="text-base lg:text-lg max-w-lg mx-auto mt-2.5 text-zinc-500 text-center text-balance"
