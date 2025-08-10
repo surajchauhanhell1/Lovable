@@ -20,6 +20,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Use Firecrawl API to capture screenshot
+    // Bust caches by appending timestamp param
+    const bustedUrl = (() => {
+      try {
+        const u = new URL(normalizedUrl)
+        u.searchParams.set('t', Date.now().toString())
+        return u.toString()
+      } catch {
+        return normalizedUrl
+      }
+    })()
+
     const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -27,9 +38,9 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        url: normalizedUrl,
-        formats: ['screenshot'], // Regular viewport screenshot, not full page
-        waitFor: 3000, // Wait for page to fully load
+        url: bustedUrl,
+        formats: ['screenshot'],
+        waitFor: 6000,
         timeout: 30000,
         blockAds: true,
         actions: [
@@ -82,6 +93,16 @@ export async function GET(req: NextRequest) {
       return new NextResponse('FIRECRAWL_API_KEY is not set', { status: 500 })
     }
 
+    const bustedUrl = (() => {
+      try {
+        const u = new URL(normalizedUrl)
+        u.searchParams.set('t', Date.now().toString())
+        return u.toString()
+      } catch {
+        return normalizedUrl
+      }
+    })()
+
     const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
       headers: {
@@ -89,9 +110,9 @@ export async function GET(req: NextRequest) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        url: normalizedUrl,
+        url: bustedUrl,
         formats: ['screenshot'],
-        waitFor: 3000,
+        waitFor: 6000,
         timeout: 30000,
         blockAds: true,
         actions: [{ type: 'wait', milliseconds: 2000 }]
