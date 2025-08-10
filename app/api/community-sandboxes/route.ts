@@ -41,11 +41,11 @@ export async function GET() {
     // If none configured, list from account using SDK (requires E2B_API_KEY)
     if (sandboxes.length === 0 && process.env.E2B_API_KEY) {
       try {
-        const listed = await Sandbox.list()
+        const listed = await Sandbox.list({ apiKey: process.env.E2B_API_KEY as string })
         const results: CommunitySandbox[] = []
         for (const info of listed) {
           try {
-            const sbx = await Sandbox.connect(info.sandboxId)
+            const sbx = await Sandbox.connect(info.sandboxId, { apiKey: process.env.E2B_API_KEY as string })
             const host = sbx.getHost(appConfig.e2b.vitePort)
             results.push({ sandboxId: info.sandboxId, url: `https://${host}` })
           } catch {
