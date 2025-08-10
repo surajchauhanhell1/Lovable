@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+// Note: Public listing of all account sandboxes isn't exposed in code-interpreter SDK.
+// For now, rely on configured env or current active sandbox.
 
 declare global {
   // From create-ai-sandbox route
@@ -35,11 +37,11 @@ export async function GET() {
       }
     }
 
-    // Fallback to the single active sandbox if present
+    // If none configured, try listing from E2B using the master key
     if (sandboxes.length === 0 && global.sandboxData?.url) {
       sandboxes.push({
-        sandboxId: global.sandboxData.sandboxId,
-        url: global.sandboxData.url,
+        sandboxId: String(global.sandboxData.sandboxId),
+        url: String(global.sandboxData.url)
       })
     }
 
