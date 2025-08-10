@@ -21,6 +21,7 @@ import {
 } from '@/lib/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
+import ExploreLibrary from '@/components/ExploreLibrary';
 
 interface SandboxData {
   sandboxId: string;
@@ -3383,6 +3384,10 @@ Focus on the key sections and content, making it clean and modern.`;
               )}
             </div>
           </div>
+          {/* Explore Library: visible under the bar when on preview tab */}
+          {activeTab === 'preview' && (
+            <ExploreLibrary />
+          )}
           <div className="flex-1 relative overflow-hidden">
             {renderMainContent()}
           </div>
