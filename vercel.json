@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "build": {
+    "env": {
+      "LIGHTNINGCSS_WASM": "1"
+    }
+  }
+}
+
