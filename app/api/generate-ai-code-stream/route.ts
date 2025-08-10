@@ -21,6 +21,7 @@ const anthropic = createAnthropic({
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL,
 });
 
 // Helper function to analyze user preferences from conversation history
@@ -165,7 +166,7 @@ export async function POST(request: NextRequest) {
           if (manifest) {
             await sendProgress({ type: 'status', message: '🔍 Creating search plan...' });
             
-            const fileContents = global.sandboxState.fileCache.files;
+            const fileContents = global.sandboxState?.fileCache?.files ?? {};
             console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
             
             // STEP 1: Get search plan from AI
@@ -326,7 +327,7 @@ User request: "${prompt}"`;
                         
                         // For now, fall back to keyword search since we don't have file contents for search execution
                         // This path happens when no manifest was initially available
-                        let targetFiles = [];
+                        let targetFiles: string[] = [];
                         if (!searchPlan || searchPlan.searchTerms.length === 0) {
                           console.warn('[generate-ai-code-stream] No target files after fetch, searching for relevant files');
                           
@@ -930,34 +931,42 @@ CRITICAL: When files are provided in the context:
                 if (filesData.success && filesData.files) {
                   console.log('[generate-ai-code-stream] Successfully fetched', Object.keys(filesData.files).length, 'files from sandbox');
                   
-                  // Initialize sandboxState if needed
+                  // Initialize sandboxState and fileCache if needed
                   if (!global.sandboxState) {
-                    global.sandboxState = {
+                    (global as any).sandboxState = {
                       fileCache: {
                         files: {},
                         lastSync: Date.now(),
                         sandboxId: context?.sandboxId || 'unknown'
-                      }
+                      },
+                      sandbox: null,
+                      sandboxData: null
                     } as any;
-                  } else if (!global.sandboxState.fileCache) {
+                  }
+                  if (!global.sandboxState.fileCache) {
                     global.sandboxState.fileCache = {
                       files: {},
                       lastSync: Date.now(),
                       sandboxId: context?.sandboxId || 'unknown'
-                    };
+                    } as any;
                   }
                   
                   // Store files in cache
                   for (const [path, content] of Object.entries(filesData.files)) {
                     const normalizedPath = path.replace('/home/user/app/', '');
-                    global.sandboxState.fileCache.files[normalizedPath] = {
-                      content: content as string,
-                      lastModified: Date.now()
-                    };
+                    const fileCache = global.sandboxState?.fileCache;
+                    if (fileCache) {
+                      fileCache.files[normalizedPath] = {
+                        content: content as string,
+                        lastModified: Date.now()
+                      };
+                    }
                   }
                   
                   if (filesData.manifest) {
-                    global.sandboxState.fileCache.manifest = filesData.manifest;
+                    if (global.sandboxState?.fileCache) {
+                      global.sandboxState.fileCache.manifest = filesData.manifest;
+                    }
                     
                     // Now try to analyze edit intent with the fetched manifest
                     if (!editContext) {
@@ -988,7 +997,7 @@ CRITICAL: When files are provided in the context:
                   }
                   
                   // Update variables
-                  backendFiles = global.sandboxState.fileCache.files;
+                  backendFiles = global.sandboxState?.fileCache?.files || {};
                   hasBackendFiles = Object.keys(backendFiles).length > 0;
                   console.log('[generate-ai-code-stream] Updated backend cache with fetched files');
                 }
@@ -1588,7 +1597,7 @@ Provide the complete file content without any truncation. Include all necessary 
                 }
                 
                 const completionResult = await streamText({
-                  model: completionClient(modelMapping[model] || model),
+                  model: completionClient(model),
                   messages: [
                     { 
                       role: 'system', 
@@ -1596,8 +1605,7 @@ Provide the complete file content without any truncation. Include all necessary 
                     },
                     { role: 'user', content: completionPrompt }
                   ],
-                  temperature: isGPT5 ? undefined : appConfig.ai.defaultTemperature,
-                  maxTokens: appConfig.ai.truncationRecoveryMaxTokens
+                  temperature: model.includes('gpt-5') ? undefined : appConfig.ai.defaultTemperature
                 });
                 
                 // Get the full text from the stream
