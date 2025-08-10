@@ -2779,6 +2779,11 @@ Focus on the key sections and content, making it clean and modern.`;
             <span className="text-white text-2xl font-bold tracking-wide">KPPM</span>
           </div>
           
+          {/* Explore Library under the top bar on home overlay */}
+          <div className="relative z-10 mt-16 px-4">
+            <ExploreLibrary />
+          </div>
+
           {/* Main content */}
           <div className="relative z-10 h-full flex items-center justify-center px-4">
             <div className="text-center max-w-4xl min-w-[600px] mx-auto">
