@@ -25,6 +25,7 @@ const openai = createOpenAI({
 const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+  compatibility: 'compatible',
   headers: {
     'HTTP-Referer': process.env.OPENROUTER_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     'X-Title': process.env.OPENROUTER_APP_NAME || 'KPPM',

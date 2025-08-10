@@ -1196,6 +1196,7 @@ CRITICAL: When files are provided in the context:
                 : model;
         
         // Make streaming API call with appropriate provider
+        const providerMaxTokens = isOpenRouter ? Math.min(appConfig.ai.maxTokens, 2048) : appConfig.ai.maxTokens;
         const streamOptions: any = {
           model: modelProvider(actualModel),
           messages: [
@@ -1258,7 +1259,8 @@ If you're running out of space, generate FEWER files but make them COMPLETE.
 It's better to have 3 complete files than 10 incomplete files.`
             }
           ],
-          maxTokens: 8192, // Reduce to ensure completion
+          maxTokens: providerMaxTokens,
+          maxOutputTokens: providerMaxTokens,
           stopSequences: [] // Don't stop early
           // Note: Neither Groq nor Anthropic models support tool/function calling in this context
           // We use XML tags for package detection instead
@@ -1398,6 +1400,35 @@ It's better to have 3 complete files than 10 incomplete files.`
         }
         
         console.log('\n\n[generate-ai-code-stream] Streaming complete.');
+
+        // Fallback: if no output produced, try a different provider (prefer Gemini)
+        if (!generatedCode || generatedCode.trim().length === 0) {
+          console.warn('[generate-ai-code-stream] No output from model. Attempting fallback provider...');
+          await sendProgress({ type: 'status', message: 'No output from model. Falling back to Gemini 2.5 Pro...' });
+
+          try {
+            const fallbackResult = await streamText({
+              model: google('gemini-2.5-pro'),
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: fullPrompt }
+              ],
+              maxOutputTokens: appConfig.ai.maxTokens
+            });
+
+            let fallbackText = '';
+            for await (const chunk of fallbackResult.textStream) {
+              const t = chunk || '';
+              fallbackText += t;
+              // Stream raw fallback text for live preview
+              await sendProgress({ type: 'stream', text: t, raw: true });
+            }
+
+            generatedCode = fallbackText;
+          } catch (fallbackError) {
+            console.error('[generate-ai-code-stream] Fallback provider failed:', fallbackError);
+          }
+        }
         
         // Send any remaining conversational text
         if (conversationalBuffer.trim()) {
