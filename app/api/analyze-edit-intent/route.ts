@@ -5,6 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import type { FileManifest } from '@/types/file-manifest';
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
@@ -18,6 +19,12 @@ const anthropic = createAnthropic({
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_BASE_URL,
+});
+
+const openAICompatible = createOpenAICompatible({
+  name: process.env.OPENAI_COMPATIBLE_MODEL!,
+  apiKey: process.env.OPENAI_COMPATIBLE_API_KEY,
+  baseURL: process.env.OPENAI_COMPATIBLE_BASE_URL!,
 });
 
 // Schema for the AI's search plan - not file selection!
@@ -102,7 +109,10 @@ export async function POST(request: NextRequest) {
       } else {
         aiModel = openai(model.replace('openai/', ''));
       }
-    } else {
+    } else if (model === 'openaiCompatible') {
+      aiModel = openAICompatible(process.env.OPENAI_COMPATIBLE_MODEL!);
+    }
+    else {
       // Default to groq if model format is unclear
       aiModel = groq(model);
     }
