@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import {
   FiFile, 
   FiChevronRight, 
   FiChevronDown,
-  FiGithub,
   BsFolderFill, 
   BsFolder2Open,
   SiJavascript, 
@@ -22,6 +21,7 @@ import {
 } from '@/lib/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
+import ExploreLibrary from '@/components/ExploreLibrary';
 
 interface SandboxData {
   sandboxId: string;
@@ -42,7 +42,15 @@ interface ChatMessage {
   };
 }
 
-export default function AISandboxPage() {
+export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <AISandboxPage />
+    </Suspense>
+  );
+}
+
+function AISandboxPage() {
   const [sandboxData, setSandboxData] = useState<SandboxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ text: 'Not connected', active: false });
@@ -137,41 +145,96 @@ export default function AISandboxPage() {
   // Clear old conversation data on component mount and create/restore sandbox
   useEffect(() => {
     const initializePage = async () => {
-      // Clear old conversation
+      // If no conversation exists yet, initialize it; avoid 400 on clear-old
       try {
         await fetch('/api/conversation-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'clear-old' })
+          body: JSON.stringify({ action: 'reset' })
         });
-        console.log('[home] Cleared old conversation data on mount');
+        console.log('[home] Initialized conversation state on mount');
       } catch (error) {
-        console.error('[ai-sandbox] Failed to clear old conversation:', error);
+        console.error('[ai-sandbox] Failed to init conversation:', error);
       }
-      
+
       // Check if sandbox ID is in URL
       const sandboxIdParam = searchParams.get('sandbox');
-      
+      const remixParam = searchParams.get('remix');
+
+      // If sandbox is in URL, immediately switch to editor layout
       if (sandboxIdParam) {
-        // Try to restore existing sandbox
+        setShowHomeScreen(false);
+        setHomeScreenFading(false);
+        setActiveTab('preview');
+        setUrlOverlayVisible(false);
+      }
+
+      if (sandboxIdParam && remixParam === '1') {
+        // Remix mode: duplicate source sandbox, then navigate to new sandbox
+        console.log('[home] Remixing from sandbox:', sandboxIdParam);
+        setLoading(true);
+        try {
+          const res = await fetch('/api/remix-sandbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sourceSandboxId: sandboxIdParam }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSandboxData({ sandboxId: data.sandboxId, url: data.url });
+            updateStatus('Sandbox active', true);
+            setActiveTab('preview');
+            setLoading(false);
+            setShowHomeScreen(false);
+            setHomeScreenFading(false);
+            setUrlOverlayVisible(false);
+            // Replace URL with new sandbox and drop remix flag
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.set('sandbox', data.sandboxId);
+            newParams.set('model', aiModel);
+            newParams.delete('remix');
+            router.replace(`/?${newParams.toString()}`, { scroll: false });
+            setTimeout(fetchSandboxFiles, 1000);
+            return;
+          }
+          console.warn('[home] Remix failed, falling back to new sandbox...');
+          await createSandbox(true);
+        } catch (error) {
+          console.error('[ai-sandbox] Failed to remix sandbox:', error);
+          await createSandbox(true);
+        }
+      } else if (sandboxIdParam) {
         console.log('[home] Attempting to restore sandbox:', sandboxIdParam);
         setLoading(true);
         try {
-          // For now, just create a new sandbox - you could enhance this to actually restore
-          // the specific sandbox if your backend supports it
+          const res = await fetch('/api/restore-sandbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sandboxId: sandboxIdParam }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSandboxData({ sandboxId: data.sandboxId, url: data.url });
+            updateStatus('Sandbox active', true);
+            // Ensure we land on the preview tab showing iframe
+            setActiveTab('preview');
+            setLoading(false);
+            setShowHomeScreen(false);
+            setHomeScreenFading(false);
+            setUrlOverlayVisible(false);
+            // Optionally trigger file fetch to hydrate tree
+            setTimeout(fetchSandboxFiles, 1000);
+            return;
+          }
+          console.warn('[home] Restore failed, creating new sandbox...');
           await createSandbox(true);
         } catch (error) {
           console.error('[ai-sandbox] Failed to restore sandbox:', error);
-          // Create new sandbox on error
           await createSandbox(true);
         }
-      } else {
-        // Automatically create new sandbox
-        console.log('[home] No sandbox in URL, creating new sandbox automatically...');
-        await createSandbox(true);
       }
     };
-    
+
     initializePage();
   }, []); // Run only on mount
   
@@ -516,7 +579,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   } else if (data.message.includes('Creating files') || data.message.includes('Applying')) {
                     setCodeApplicationState({ 
                       stage: 'applying',
-                      filesGenerated: results.filesCreated 
+                      filesGenerated: (data.filesCreated || data.filesGenerated || [])
                     });
                   }
                   break;
@@ -677,22 +740,22 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           log(data.explanation);
         }
         
-        if (data.autoCompleted) {
+        if (finalData?.autoCompleted) {
           log('Auto-generating missing components...', 'command');
           
-          if (data.autoCompletedComponents) {
+          if (finalData.autoCompletedComponents) {
             setTimeout(() => {
               log('Auto-generated missing components:', 'info');
-              data.autoCompletedComponents.forEach((comp: string) => {
+              finalData.autoCompletedComponents.forEach((comp: string) => {
                 log(`  ${comp}`, 'command');
               });
             }, 1000);
           }
-        } else if (data.warning) {
-          log(data.warning, 'error');
+        } else if (finalData?.warning) {
+          log(finalData.warning, 'error');
           
-          if (data.missingImports && data.missingImports.length > 0) {
-            const missingList = data.missingImports.join(', ');
+          if (finalData.missingImports && finalData.missingImports.length > 0) {
+            const missingList = finalData.missingImports.join(', ');
             addChatMessage(
               `Ask me to "create the missing components: ${missingList}" to fix these import errors.`,
               'system'
@@ -702,7 +765,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         
         log('Code applied successfully!');
         console.log('[applyGeneratedCode] Response data:', data);
-        console.log('[applyGeneratedCode] Debug info:', data.debug);
+        console.log('[applyGeneratedCode] Debug info:', finalData?.debug);
         console.log('[applyGeneratedCode] Current sandboxData:', sandboxData);
         console.log('[applyGeneratedCode] Current iframe element:', iframeRef.current);
         console.log('[applyGeneratedCode] Current iframe src:', iframeRef.current?.src);
@@ -997,7 +1060,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                       // Create a map of edited files
                       const editedFiles = new Set(
                         generationProgress.files
-                          .filter(f => f.edited)
+                          .filter(f => (f as any).edited)
                           .map(f => f.path)
                       );
                       
@@ -1010,7 +1073,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                         if (!fileTree[dir]) fileTree[dir] = [];
                         fileTree[dir].push({
                           name: fileName,
-                          edited: file.edited || false
+                          edited: (file as any).edited || false
                         });
                       });
                       
@@ -1393,7 +1456,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
               ref={iframeRef}
               src={sandboxData.url}
               className="w-full h-full border-none"
-              title="Open Lovable Sandbox"
+              title="KPPM Sandbox"
               allow="clipboard-write"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
             />
@@ -1480,7 +1543,9 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     let sandboxPromise: Promise<void> | null = null;
     let sandboxCreating = false;
     
-    if (!sandboxData) {
+    const remixSandboxId = searchParams.get('sandbox');
+    const isRemixMode = !!remixSandboxId;
+    if (!sandboxData && !isRemixMode) {
       sandboxCreating = true;
       addChatMessage('Creating sandbox while I plan your app...', 'system');
       sandboxPromise = createSandbox(true).catch((error: any) => {
@@ -1634,8 +1699,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                               ...updatedState.files[existingFileIndex],
                               content: fileContent.trim(),
                               type: fileType,
-                              completed: true,
-                              edited: true
+                              completed: true
                             },
                             ...updatedState.files.slice(existingFileIndex + 1)
                           ];
@@ -1645,8 +1709,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                             path: filePath,
                             content: fileContent.trim(),
                             type: fileType,
-                            completed: true,
-                            edited: false
+                            completed: true
                           }];
                         }
                         
@@ -2351,11 +2414,13 @@ Focus on the key sections and content, making it clean and modern while preservi
     addChatMessage(`Starting to clone ${cleanUrl}...`, 'system');
     
     // Start creating sandbox and capturing screenshot immediately in parallel
-    const sandboxPromise = !sandboxData ? createSandbox(true) : Promise.resolve();
+    const remixSandboxId = searchParams.get('sandbox');
+    const isRemixMode = !!remixSandboxId;
+    const sandboxPromise = !sandboxData && !isRemixMode ? createSandbox(true) : Promise.resolve();
     
     // Only capture screenshot if we don't already have a sandbox (first generation)
     // After sandbox is set up, skip the screenshot phase for faster generation
-    if (!sandboxData) {
+    if (!sandboxData && !isRemixMode) {
       captureUrlScreenshot(displayUrl);
     }
     
@@ -2571,8 +2636,7 @@ Focus on the key sections and content, making it clean and modern.`;
                               ...updatedState.files[existingFileIndex],
                               content: fileContent.trim(),
                               type: fileType,
-                              completed: true,
-                              edited: true
+                              completed: true
                             },
                             ...updatedState.files.slice(existingFileIndex + 1)
                           ];
@@ -2582,8 +2646,7 @@ Focus on the key sections and content, making it clean and modern.`;
                             path: filePath,
                             content: fileContent.trim(),
                             type: fileType,
-                            completed: true,
-                            edited: false
+                            completed: true
                           }];
                         }
                         
@@ -2731,21 +2794,21 @@ Focus on the key sections and content, making it clean and modern.`;
           {/* Simple Sun Gradient Background */}
           <div className="absolute inset-0 bg-white overflow-hidden">
             {/* Main Sun - Pulsing */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-orange-400/50 via-orange-300/30 to-transparent rounded-full blur-[80px] animate-[sunPulse_4s_ease-in-out_infinite]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-blue-400/50 via-blue-300/30 to-transparent rounded-full blur-[80px] animate-[sunPulse_4s_ease-in-out_infinite]" />
             
             {/* Inner Sun Core - Brighter */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-radial from-yellow-300/40 via-orange-400/30 to-transparent rounded-full blur-[40px] animate-[sunPulse_4s_ease-in-out_infinite_0.5s]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-gradient-radial from-blue-200/40 via-blue-400/30 to-transparent rounded-full blur-[40px] animate-[sunPulse_4s_ease-in-out_infinite_0.5s]" />
             
             {/* Outer Glow - Subtle */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-gradient-radial from-orange-200/20 to-transparent rounded-full blur-[120px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-gradient-radial from-blue-200/20 to-transparent rounded-full blur-[120px]" />
             
             {/* Giant Glowing Orb - Center Bottom */}
             <div className="absolute bottom-0 left-1/2 w-[800px] h-[800px] animate-[orbShrink_3s_ease-out_forwards]" style={{ transform: 'translateX(-50%) translateY(45%)' }}>
               <div className="relative w-full h-full">
-                <div className="absolute inset-0 bg-orange-600 rounded-full blur-[100px] opacity-30 animate-pulse"></div>
-                <div className="absolute inset-16 bg-orange-500 rounded-full blur-[80px] opacity-40 animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                <div className="absolute inset-32 bg-orange-400 rounded-full blur-[60px] opacity-50 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                <div className="absolute inset-48 bg-yellow-300 rounded-full blur-[40px] opacity-60"></div>
+                <div className="absolute inset-0 bg-blue-600 rounded-full blur-[100px] opacity-30 animate-pulse"></div>
+                <div className="absolute inset-16 bg-blue-500 rounded-full blur-[80px] opacity-40 animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                <div className="absolute inset-32 bg-blue-400 rounded-full blur-[60px] opacity-50 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                <div className="absolute inset-48 bg-blue-300 rounded-full blur-[40px] opacity-60"></div>
               </div>
             </div>
           </div>
@@ -2772,20 +2835,7 @@ Focus on the key sections and content, making it clean and modern.`;
           
           {/* Header */}
           <div className="absolute top-0 left-0 right-0 z-20 px-6 py-4 flex items-center justify-between animate-[fadeIn_0.8s_ease-out]">
-            <img
-              src="/firecrawl-logo-with-fire.webp"
-              alt="Firecrawl"
-              className="h-8 w-auto"
-            />
-            <a 
-              href="https://github.com/mendableai/open-lovable" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#36322F] text-white px-3 py-2 rounded-[10px] text-sm font-medium [box-shadow:inset_0px_-2px_0px_0px_#171310,_0px_1px_6px_0px_rgba(58,_33,_8,_58%)] hover:translate-y-[1px] hover:scale-[0.98] hover:[box-shadow:inset_0px_-1px_0px_0px_#171310,_0px_1px_3px_0px_rgba(58,_33,_8,_40%)] active:translate-y-[2px] active:scale-[0.97] active:[box-shadow:inset_0px_1px_1px_0px_#171310,_0px_1px_2px_0px_rgba(58,_33,_8,_30%)] transition-all duration-200"
-            >
-              <FiGithub className="w-4 h-4" />
-              <span>Use this template</span>
-            </a>
+            <span className="text-white text-2xl font-bold tracking-wide">KPPM</span>
           </div>
           
           {/* Main content */}
@@ -2794,8 +2844,8 @@ Focus on the key sections and content, making it clean and modern.`;
               {/* Firecrawl-style Header */}
               <div className="text-center">
                 <h1 className="text-[2.5rem] lg:text-[3.8rem] text-center text-[#36322F] font-semibold tracking-tight leading-[0.9] animate-[fadeIn_0.8s_ease-out]">
-                  <span className="hidden md:inline">Open Lovable</span>
-                  <span className="md:hidden">Open Lovable</span>
+                  <span className="hidden md:inline">KPPM</span>
+                  <span className="md:hidden">KPPM</span>
                 </h1>
                 <motion.p 
                   className="text-base lg:text-lg max-w-lg mx-auto mt-2.5 text-zinc-500 text-center text-balance"
@@ -2828,7 +2878,6 @@ Focus on the key sections and content, making it clean and modern.`;
                       }
                     }}
                     placeholder=" "
-                    aria-placeholder="https://firecrawl.dev"
                     className="h-[3.25rem] w-full resize-none focus-visible:outline-none focus-visible:ring-orange-500 focus-visible:ring-2 rounded-[18px] text-sm text-[#36322F] px-4 pr-12 border-[.75px] border-border bg-white"
                     style={{
                       boxShadow: '0 0 0 1px #e3e1de66, 0 1px 2px #5f4a2e14, 0 4px 6px #5f4a2e0a, 0 40px 40px -24px #684b2514',
@@ -2842,9 +2891,6 @@ Focus on the key sections and content, making it clean and modern.`;
                       homeUrlInput ? 'opacity-0' : 'opacity-100'
                     }`}
                   >
-                    <span className="text-[#605A57]/50" style={{ fontFamily: 'monospace' }}>
-                      https://firecrawl.dev
-                    </span>
                   </div>
                   <button
                     type="submit"
@@ -2955,7 +3001,7 @@ Focus on the key sections and content, making it clean and modern.`;
                     </div>
                   )}
               </form>
-              
+
               {/* Model Selector */}
               <div className="mt-6 flex items-center justify-center animate-[fadeIn_1s_ease-out]">
                 <select
@@ -2982,6 +3028,11 @@ Focus on the key sections and content, making it clean and modern.`;
                   ))}
                 </select>
               </div>
+
+              {/* Explore Library placed under the model picker */}
+              <div className="mt-6">
+                <ExploreLibrary />
+              </div>
             </div>
           </div>
         </div>
@@ -2989,11 +3040,18 @@ Focus on the key sections and content, making it clean and modern.`;
       
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img
-            src="/firecrawl-logo-with-fire.webp"
-            alt="Firecrawl"
-            className="h-8 w-auto"
-          />
+          <button
+            type="button"
+            className="text-xl font-semibold hover:opacity-80 transition-opacity"
+            onClick={() => {
+              setShowHomeScreen(true);
+              setHomeScreenFading(false);
+              router.push('/');
+            }}
+            aria-label="Go to home"
+          >
+            KPPM
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {/* Model Selector - Left side */}
@@ -3401,6 +3459,7 @@ Focus on the key sections and content, making it clean and modern.`;
               )}
             </div>
           </div>
+          {/* Explore Library: render below the prompt bar on home screen only */}
           <div className="flex-1 relative overflow-hidden">
             {renderMainContent()}
           </div>

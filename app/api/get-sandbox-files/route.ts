@@ -46,7 +46,7 @@ def get_files_content(directory='/home/user/app', extensions=['.jsx', '.js', '.t
     
     return files_content
 
-# Get the files
+# Get the files and prioritize app content
 files = get_files_content()
 
 # Also get the directory structure
@@ -119,8 +119,13 @@ print(json.dumps(result))
       fileManifest.files[fullPath] = fileInfo;
     }
     
-    // Build component tree
+    // Build component tree and detect entry HTML
     fileManifest.componentTree = buildComponentTree(fileManifest.files);
+    for (const [path, fi] of Object.entries(fileManifest.files)) {
+      if (fi.relativePath === 'index.html') {
+        fileManifest.entryPoint = fileManifest.entryPoint || path
+      }
+    }
     
     // Extract routes (simplified - looks for Route components or page pattern)
     fileManifest.routes = extractRoutes(fileManifest.files);

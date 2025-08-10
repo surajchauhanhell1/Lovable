@@ -1,0 +1,21 @@
+Vercel CLI 44.4.1
+Retrieving project…
+Deploying finessses-projects/kppm
+Uploading [--------------------] (0.0B/562.8KB)
+Uploading [=====---------------] (142.6KB/562.8KB)
+Uploading [==========----------] (289.0KB/562.8KB)
+Uploading [===============-----] (432.7KB/562.8KB)
+Uploading [====================] (562.8KB/562.8KB)
+Inspect: https://vercel.com/finessses-projects/kppm/4edetAv6VB6y4z7fkMNJMM7bMUnP [4s]
+Production: https://kppm-6h4ulzjwc-finessses-projects.vercel.app [4s]
+https://kppm-6h4ulzjwc-finessses-projects.vercel.appQueued
+2025-08-10T07:23:51.887Z  Running build in Washington, D.C., USA (East) – iad1
+2025-08-10T07:23:51.887Z  Build machine configuration: 2 cores, 8 GB
+2025-08-10T07:23:51.920Z  Retrieving list of deployment files...
+2025-08-10T07:23:52.111Z  Previous build caches not available
+2025-08-10T07:23:52.487Z  Downloading 75 deployment files...
+Error: Command "pnpm install" exited with 1
+> 
+
+> To check build logs run: `vercel inspect kppm-6h4ulzjwc-finessses-projects.vercel.app --logs`
+> Or inspect them in your browser at https://kppm-6h4ulzjwc-finessses-projects.vercel.app/_logs

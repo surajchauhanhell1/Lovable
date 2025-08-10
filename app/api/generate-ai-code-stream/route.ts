@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGroq } from '@ai-sdk/groq';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
@@ -10,17 +10,20 @@ import { FileManifest } from '@/types/file-manifest';
 import type { ConversationState, ConversationMessage, ConversationEdit } from '@/types/conversation';
 import { appConfig } from '@/config/app.config';
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
-});
+// Removed Groq and Anthropic providers
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL,
+});
+
+// OpenRouter provider (official)
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
 // Helper function to analyze user preferences from conversation history
@@ -69,7 +72,7 @@ declare global {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, model = 'openai/gpt-oss-20b', context, isEdit = false } = await request.json();
+    const { prompt, model = 'openai/gpt-5', context, isEdit = false } = await request.json();
     
     console.log('[generate-ai-code-stream] Received request:');
     console.log('[generate-ai-code-stream] - prompt:', prompt);
@@ -165,7 +168,7 @@ export async function POST(request: NextRequest) {
           if (manifest) {
             await sendProgress({ type: 'status', message: '🔍 Creating search plan...' });
             
-            const fileContents = global.sandboxState.fileCache.files;
+            const fileContents = global.sandboxState?.fileCache?.files ?? {};
             console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
             
             // STEP 1: Get search plan from AI
@@ -326,7 +329,7 @@ User request: "${prompt}"`;
                         
                         // For now, fall back to keyword search since we don't have file contents for search execution
                         // This path happens when no manifest was initially available
-                        let targetFiles = [];
+                        let targetFiles: string[] = [];
                         if (!searchPlan || searchPlan.searchTerms.length === 0) {
                           console.warn('[generate-ai-code-stream] No target files after fetch, searching for relevant files');
                           
@@ -930,34 +933,42 @@ CRITICAL: When files are provided in the context:
                 if (filesData.success && filesData.files) {
                   console.log('[generate-ai-code-stream] Successfully fetched', Object.keys(filesData.files).length, 'files from sandbox');
                   
-                  // Initialize sandboxState if needed
+                  // Initialize sandboxState and fileCache if needed
                   if (!global.sandboxState) {
-                    global.sandboxState = {
+                    (global as any).sandboxState = {
                       fileCache: {
                         files: {},
                         lastSync: Date.now(),
                         sandboxId: context?.sandboxId || 'unknown'
-                      }
+                      },
+                      sandbox: null,
+                      sandboxData: null
                     } as any;
-                  } else if (!global.sandboxState.fileCache) {
+                  }
+                  if (!global.sandboxState.fileCache) {
                     global.sandboxState.fileCache = {
                       files: {},
                       lastSync: Date.now(),
                       sandboxId: context?.sandboxId || 'unknown'
-                    };
+                    } as any;
                   }
                   
                   // Store files in cache
                   for (const [path, content] of Object.entries(filesData.files)) {
                     const normalizedPath = path.replace('/home/user/app/', '');
-                    global.sandboxState.fileCache.files[normalizedPath] = {
-                      content: content as string,
-                      lastModified: Date.now()
-                    };
+                    const fileCache = global.sandboxState?.fileCache;
+                    if (fileCache) {
+                      fileCache.files[normalizedPath] = {
+                        content: content as string,
+                        lastModified: Date.now()
+                      };
+                    }
                   }
                   
                   if (filesData.manifest) {
-                    global.sandboxState.fileCache.manifest = filesData.manifest;
+                    if (global.sandboxState?.fileCache) {
+                      global.sandboxState.fileCache.manifest = filesData.manifest;
+                    }
                     
                     // Now try to analyze edit intent with the fetched manifest
                     if (!editContext) {
@@ -988,7 +999,7 @@ CRITICAL: When files are provided in the context:
                   }
                   
                   // Update variables
-                  backendFiles = global.sandboxState.fileCache.files;
+                  backendFiles = global.sandboxState?.fileCache?.files || {};
                   hasBackendFiles = Object.keys(backendFiles).length > 0;
                   console.log('[generate-ai-code-stream] Updated backend cache with fetched files');
                 }
@@ -1147,13 +1158,26 @@ CRITICAL: When files are provided in the context:
         const packagesToInstall: string[] = [];
         
         // Determine which provider to use based on model
-        const isAnthropic = model.startsWith('anthropic/');
-        const isOpenAI = model.startsWith('openai/gpt-5');
-        const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : groq);
-        const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
+        const isOpenAI = model.startsWith('openai/');
+        const isGoogle = model.startsWith('google/');
+        const isOpenRouter = model.startsWith('openrouter/');
+        const modelProvider = isGoogle
+          ? google
+          : isOpenAI
+            ? openai
+            : isOpenRouter
+              ? openrouter
+              : openai;
+        const actualModel = isGoogle
+          ? model.replace('google/', '')
+          : isOpenAI
+            ? model.replace('openai/', '')
+            : isOpenRouter
+              ? model.replace('openrouter/', '')
+              : model;
         
         // Make streaming API call with appropriate provider
+        const providerMaxTokens = isOpenRouter ? Math.min(appConfig.ai.maxTokens, 2048) : appConfig.ai.maxTokens;
         const streamOptions: any = {
           model: modelProvider(actualModel),
           messages: [
@@ -1216,10 +1240,9 @@ If you're running out of space, generate FEWER files but make them COMPLETE.
 It's better to have 3 complete files than 10 incomplete files.`
             }
           ],
-          maxTokens: 8192, // Reduce to ensure completion
+          maxTokens: providerMaxTokens,
+          maxOutputTokens: providerMaxTokens,
           stopSequences: [] // Don't stop early
-          // Note: Neither Groq nor Anthropic models support tool/function calling in this context
-          // We use XML tags for package detection instead
         };
         
         // Add temperature for non-reasoning models
@@ -1356,6 +1379,35 @@ It's better to have 3 complete files than 10 incomplete files.`
         }
         
         console.log('\n\n[generate-ai-code-stream] Streaming complete.');
+
+        // Fallback: if no output produced, try a different provider (prefer Gemini)
+        if (!generatedCode || generatedCode.trim().length === 0) {
+          console.warn('[generate-ai-code-stream] No output from model. Attempting fallback provider...');
+          await sendProgress({ type: 'status', message: 'No output from model. Falling back to Gemini 2.5 Pro...' });
+
+          try {
+            const fallbackResult = await streamText({
+              model: google('gemini-2.5-pro'),
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: fullPrompt }
+              ],
+              maxOutputTokens: appConfig.ai.maxTokens
+            });
+
+            let fallbackText = '';
+            for await (const chunk of fallbackResult.textStream) {
+              const t = chunk || '';
+              fallbackText += t;
+              // Stream raw fallback text for live preview
+              await sendProgress({ type: 'stream', text: t, raw: true });
+            }
+
+            generatedCode = fallbackText;
+          } catch (fallbackError) {
+            console.error('[generate-ai-code-stream] Fallback provider failed:', fallbackError);
+          }
+        }
         
         // Send any remaining conversational text
         if (conversationalBuffer.trim()) {
@@ -1579,16 +1631,19 @@ Provide the complete file content without any truncation. Include all necessary 
                 // Make a focused API call to complete this specific file
                 // Create a new client for the completion based on the provider
                 let completionClient;
-                if (model.includes('gpt') || model.includes('openai')) {
+                if (model.startsWith('openrouter/')) {
+                  completionClient = openrouter;
+                } else if (model.startsWith('openai/') || model.includes('gpt')) {
                   completionClient = openai;
-                } else if (model.includes('claude')) {
-                  completionClient = anthropic;
+                } else if (model.startsWith('google/')) {
+                  completionClient = google;
                 } else {
-                  completionClient = groq;
+                  completionClient = openai;
                 }
                 
+                const completionModelName = model.replace(/^(openai|google|openrouter)\//, '');
                 const completionResult = await streamText({
-                  model: completionClient(modelMapping[model] || model),
+                  model: completionClient(completionModelName),
                   messages: [
                     { 
                       role: 'system', 
@@ -1596,8 +1651,7 @@ Provide the complete file content without any truncation. Include all necessary 
                     },
                     { role: 'user', content: completionPrompt }
                   ],
-                  temperature: isGPT5 ? undefined : appConfig.ai.defaultTemperature,
-                  maxTokens: appConfig.ai.truncationRecoveryMaxTokens
+                  temperature: model.includes('gpt-5') ? undefined : appConfig.ai.defaultTemperature
                 });
                 
                 // Get the full text from the stream
