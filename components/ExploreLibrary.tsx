@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { appConfig } from '@/config/app.config'
 
 type SandboxInfo = {
   sandboxId?: string
@@ -131,11 +132,18 @@ export default function ExploreLibrary() {
                   <div className="text-sm font-medium truncate">{sb.sandboxId || 'Sandbox'}</div>
                   <div className="text-xs text-muted-foreground truncate max-w-[180px]">{sb.url}</div>
                 </div>
-                {sb.url && (
-                  <Button asChild size="sm" className="h-8 px-3">
-                    <a href={sb.url} target="_blank" rel="noopener noreferrer">Open</a>
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {sb.sandboxId && (
+                    <Button asChild size="sm" variant="secondary" className="h-8 px-3">
+                      <a href={`/?sandbox=${encodeURIComponent(sb.sandboxId)}&model=${encodeURIComponent(appConfig.ai.defaultModel)}`}>Remix</a>
+                    </Button>
+                  )}
+                  {sb.url && (
+                    <Button asChild size="sm" className="h-8 px-3">
+                      <a href={sb.url} target="_blank" rel="noopener noreferrer">Open</a>
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
