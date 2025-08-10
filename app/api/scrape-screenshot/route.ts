@@ -65,3 +65,79 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    const rawUrl = req.nextUrl.searchParams.get('url') || ''
+    if (!rawUrl) {
+      return new NextResponse('URL is required', { status: 400 })
+    }
+    const normalizedUrl = normalizeAndValidateHttpUrl(rawUrl)
+    if (!normalizedUrl) {
+      return new NextResponse('Invalid URL', { status: 400 })
+    }
+
+    const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY
+    if (!FIRECRAWL_API_KEY) {
+      return new NextResponse('FIRECRAWL_API_KEY is not set', { status: 500 })
+    }
+
+    const firecrawlResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        url: normalizedUrl,
+        formats: ['screenshot'],
+        waitFor: 3000,
+        timeout: 30000,
+        blockAds: true,
+        actions: [{ type: 'wait', milliseconds: 2000 }]
+      })
+    })
+
+    if (!firecrawlResponse.ok) {
+      const text = await firecrawlResponse.text()
+      return new NextResponse(`Firecrawl API error: ${text}`, { status: 502 })
+    }
+
+    const data = await firecrawlResponse.json()
+    const sc: string | undefined = data?.data?.screenshot
+    if (!data.success || !sc) {
+      return new NextResponse('Failed to capture screenshot', { status: 502 })
+    }
+
+    // If Firecrawl returns a data URL, convert to binary; if URL, proxy it
+    if (sc.startsWith('data:image/')) {
+      const base64 = sc.split(',')[1] || ''
+      const buffer = Buffer.from(base64, 'base64')
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=60'
+        }
+      })
+    }
+
+    if (sc.startsWith('http')) {
+      const imgRes = await fetch(sc)
+      const arr = new Uint8Array(await imgRes.arrayBuffer())
+      const contentType = imgRes.headers.get('content-type') || 'image/png'
+      return new NextResponse(arr, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=60'
+        }
+      })
+    }
+
+    return new NextResponse('Unsupported screenshot format', { status: 502 })
+  } catch (error: any) {
+    console.error('Screenshot GET error:', error)
+    return new NextResponse('Failed to capture screenshot', { status: 500 })
+  }
+}
