@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-// Note: Public listing of all account sandboxes isn't exposed in code-interpreter SDK.
-// For now, rely on configured env or current active sandbox.
+import { Sandbox } from '@e2b/code-interpreter'
+import { appConfig } from '@/config/app.config'
 
 declare global {
   // From create-ai-sandbox route
@@ -38,11 +38,28 @@ export async function GET() {
     }
 
     // If none configured, try listing from E2B using the master key
+    // If none configured, list from account using SDK (requires E2B_API_KEY)
+    if (sandboxes.length === 0 && process.env.E2B_API_KEY) {
+      try {
+        const listed = await Sandbox.list()
+        const results: CommunitySandbox[] = []
+        for (const info of listed) {
+          try {
+            const sbx = await Sandbox.connect(info.sandboxId)
+            const host = sbx.getHost(appConfig.e2b.vitePort)
+            results.push({ sandboxId: info.sandboxId, url: `https://${host}` })
+          } catch {
+            results.push({ sandboxId: info.sandboxId, url: '' })
+          }
+        }
+        sandboxes = results
+      } catch {
+        // Ignore and fall back to current sandbox if available
+      }
+    }
+
     if (sandboxes.length === 0 && global.sandboxData?.url) {
-      sandboxes.push({
-        sandboxId: String(global.sandboxData.sandboxId),
-        url: String(global.sandboxData.url)
-      })
+      sandboxes.push({ sandboxId: String(global.sandboxData.sandboxId), url: String(global.sandboxData.url) })
     }
 
     return NextResponse.json({ success: true, sandboxes })
