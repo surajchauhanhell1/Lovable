@@ -29,6 +29,13 @@ OPENAI_API_KEY=your_openai_api_key  # Get from https://platform.openai.com (GPT-
 GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast inference - Kimi K2 recommended)
 GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key  # Get from https://ai.google.dev
 
+# OpenRouter (supports free models like qwen/qwen3-coder:free)
+OPENROUTER_API_KEY=your_openrouter_key  # Get from https://openrouter.ai
+# Optional but recommended for OpenRouter rate limits/analytics
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_SITE_URL=http://localhost:3000
+OPENROUTER_APP_NAME=KPPM
+
 # Optional: Custom OpenAI-compatible endpoint
 # Some providers only support Chat Completions (POST /v1/chat/completions) not Responses (POST /v1/responses).
 # If your provider rejects /v1/responses with 403, route through a gateway that translates to Chat Completions

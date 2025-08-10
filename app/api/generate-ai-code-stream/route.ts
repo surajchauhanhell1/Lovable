@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createGroq } from '@ai-sdk/groq';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
@@ -22,6 +23,21 @@ const anthropic = createAnthropic({
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_BASE_URL,
+});
+
+// OpenRouter (OpenAI-compatible) provider
+const openrouter = createOpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+  headers: {
+    // Recommended headers per OpenRouter guidelines
+    'HTTP-Referer': process.env.OPENROUTER_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    'X-Title': process.env.OPENROUTER_APP_NAME || 'KPPM',
+  },
+});
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
 // Helper function to analyze user preferences from conversation history
@@ -1157,10 +1173,27 @@ CRITICAL: When files are provided in the context:
         
         // Determine which provider to use based on model
         const isAnthropic = model.startsWith('anthropic/');
-        const isOpenAI = model.startsWith('openai/gpt-5');
-        const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : groq);
-        const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
+        const isOpenAI = model.startsWith('openai/');
+        const isGoogle = model.startsWith('google/');
+        const isOpenRouter = model.startsWith('openrouter/');
+        const modelProvider = isAnthropic
+          ? anthropic
+          : isGoogle
+            ? google
+            : isOpenAI
+              ? openai
+              : isOpenRouter
+                ? openrouter
+                : groq;
+        const actualModel = isAnthropic
+          ? model.replace('anthropic/', '')
+          : isGoogle
+            ? model.replace('google/', '')
+            : isOpenAI
+              ? model.replace('openai/', '')
+              : isOpenRouter
+                ? model.replace('openrouter/', '')
+                : model;
         
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
@@ -1588,16 +1621,21 @@ Provide the complete file content without any truncation. Include all necessary 
                 // Make a focused API call to complete this specific file
                 // Create a new client for the completion based on the provider
                 let completionClient;
-                if (model.includes('gpt') || model.includes('openai')) {
+                if (model.startsWith('openrouter/')) {
+                  completionClient = openrouter;
+                } else if (model.startsWith('openai/') || model.includes('gpt')) {
                   completionClient = openai;
-                } else if (model.includes('claude')) {
+                } else if (model.startsWith('anthropic/') || model.includes('claude')) {
                   completionClient = anthropic;
+                } else if (model.startsWith('google/')) {
+                  completionClient = google;
                 } else {
                   completionClient = groq;
                 }
                 
+                const completionModelName = model.replace(/^(openai|anthropic|google|openrouter)\//, '');
                 const completionResult = await streamText({
-                  model: completionClient(model),
+                  model: completionClient(completionModelName),
                   messages: [
                     { 
                       role: 'system', 
