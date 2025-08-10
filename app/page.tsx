@@ -145,32 +145,45 @@ function AISandboxPage() {
   // Clear old conversation data on component mount and create/restore sandbox
   useEffect(() => {
     const initializePage = async () => {
-      // Clear old conversation
+      // If no conversation exists yet, initialize it; avoid 400 on clear-old
       try {
         await fetch('/api/conversation-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'clear-old' })
+          body: JSON.stringify({ action: 'reset' })
         });
-        console.log('[home] Cleared old conversation data on mount');
+        console.log('[home] Initialized conversation state on mount');
       } catch (error) {
-        console.error('[ai-sandbox] Failed to clear old conversation:', error);
+        console.error('[ai-sandbox] Failed to init conversation:', error);
       }
-      
+
       // Check if sandbox ID is in URL
       const sandboxIdParam = searchParams.get('sandbox');
-      
+
       if (sandboxIdParam) {
-        // Try to restore existing sandbox
         console.log('[home] Attempting to restore sandbox:', sandboxIdParam);
         setLoading(true);
         try {
-          // For now, just create a new sandbox - you could enhance this to actually restore
-          // the specific sandbox if your backend supports it
+          const res = await fetch('/api/restore-sandbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sandboxId: sandboxIdParam }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSandboxData({ sandboxId: data.sandboxId, url: data.url });
+            updateStatus('Sandbox active', true);
+            // Ensure we land on the preview tab showing iframe
+            setActiveTab('preview');
+            setLoading(false);
+            // Optionally trigger file fetch to hydrate tree
+            setTimeout(fetchSandboxFiles, 1000);
+            return;
+          }
+          console.warn('[home] Restore failed, creating new sandbox...');
           await createSandbox(true);
         } catch (error) {
           console.error('[ai-sandbox] Failed to restore sandbox:', error);
-          // Create new sandbox on error
           await createSandbox(true);
         }
       } else {
@@ -179,7 +192,7 @@ function AISandboxPage() {
         await createSandbox(true);
       }
     };
-    
+
     initializePage();
   }, []); // Run only on mount
   

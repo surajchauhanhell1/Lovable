@@ -133,9 +133,15 @@ export default function ExploreLibrary() {
                   <div className="text-xs text-muted-foreground truncate max-w-[180px]">{sb.url}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {sb.sandboxId && (
+                  {(sb.sandboxId || sb.url) && (
                     <Button asChild size="sm" variant="secondary" className="h-8 px-3">
-                      <a href={`/?sandbox=${encodeURIComponent(sb.sandboxId)}&model=${encodeURIComponent(appConfig.ai.defaultModel)}`}>Remix</a>
+                      <a
+                        href={`/?sandbox=${encodeURIComponent(
+                          sb.sandboxId || (sb.url ? (sb.url.match(/https?:\/\/(?:\d+-)?([a-z0-9]+)\.e2b\.app/i)?.[1] ?? '') : '')
+                        )}&model=${encodeURIComponent(appConfig.ai.defaultModel)}`}
+                      >
+                        Remix
+                      </a>
                     </Button>
                   )}
                   {sb.url && (
