@@ -2943,11 +2943,6 @@ Focus on the key sections and content, making it clean and modern.`;
                   )}
               </form>
 
-              {/* Explore Library placed directly under the prompt bar */}
-              <div className="mt-6">
-                <ExploreLibrary />
-              </div>
-
               {/* Model Selector */}
               <div className="mt-6 flex items-center justify-center animate-[fadeIn_1s_ease-out]">
                 <select
@@ -2973,6 +2968,11 @@ Focus on the key sections and content, making it clean and modern.`;
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Explore Library placed under the model picker */}
+              <div className="mt-6">
+                <ExploreLibrary />
               </div>
             </div>
           </div>
