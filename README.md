@@ -24,9 +24,7 @@ E2B_API_KEY=your_e2b_api_key  # Get from https://e2b.dev (Sandboxes)
 FIRECRAWL_API_KEY=your_firecrawl_api_key  # Get from https://firecrawl.dev (Web scraping)
 
 # Optional (need at least one AI provider)
-ANTHROPIC_API_KEY=your_anthropic_api_key  # Get from https://console.anthropic.com
 OPENAI_API_KEY=your_openai_api_key  # Get from https://platform.openai.com (GPT-5)
-GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast inference - Kimi K2 recommended)
 GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key  # Get from https://ai.google.dev
 
 # OpenRouter (supports free models like qwen/qwen3-coder:free)

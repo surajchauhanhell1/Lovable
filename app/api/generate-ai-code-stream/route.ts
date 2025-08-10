@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGroq } from '@ai-sdk/groq';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
@@ -11,29 +10,16 @@ import { FileManifest } from '@/types/file-manifest';
 import type { ConversationState, ConversationMessage, ConversationEdit } from '@/types/conversation';
 import { appConfig } from '@/config/app.config';
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
-});
+// Removed Groq and Anthropic providers
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_BASE_URL,
 });
 
-// OpenRouter (OpenAI-compatible) provider
-const openrouter = createOpenAI({
+// OpenRouter provider (official)
+const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-  headers: {
-    // Recommended headers per OpenRouter guidelines
-    'HTTP-Referer': process.env.OPENROUTER_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    'X-Title': process.env.OPENROUTER_APP_NAME || 'KPPM',
-  },
 });
 
 const google = createGoogleGenerativeAI({
@@ -86,7 +72,7 @@ declare global {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, model = 'openai/gpt-oss-20b', context, isEdit = false } = await request.json();
+    const { prompt, model = 'openai/gpt-5', context, isEdit = false } = await request.json();
     
     console.log('[generate-ai-code-stream] Received request:');
     console.log('[generate-ai-code-stream] - prompt:', prompt);
@@ -1172,28 +1158,23 @@ CRITICAL: When files are provided in the context:
         const packagesToInstall: string[] = [];
         
         // Determine which provider to use based on model
-        const isAnthropic = model.startsWith('anthropic/');
         const isOpenAI = model.startsWith('openai/');
         const isGoogle = model.startsWith('google/');
         const isOpenRouter = model.startsWith('openrouter/');
-        const modelProvider = isAnthropic
-          ? anthropic
-          : isGoogle
-            ? google
-            : isOpenAI
-              ? openai
-              : isOpenRouter
-                ? openrouter
-                : groq;
-        const actualModel = isAnthropic
-          ? model.replace('anthropic/', '')
-          : isGoogle
-            ? model.replace('google/', '')
-            : isOpenAI
-              ? model.replace('openai/', '')
-              : isOpenRouter
-                ? model.replace('openrouter/', '')
-                : model;
+        const modelProvider = isGoogle
+          ? google
+          : isOpenAI
+            ? openai
+            : isOpenRouter
+              ? openrouter
+              : openai;
+        const actualModel = isGoogle
+          ? model.replace('google/', '')
+          : isOpenAI
+            ? model.replace('openai/', '')
+            : isOpenRouter
+              ? model.replace('openrouter/', '')
+              : model;
         
         // Make streaming API call with appropriate provider
         const providerMaxTokens = isOpenRouter ? Math.min(appConfig.ai.maxTokens, 2048) : appConfig.ai.maxTokens;
@@ -1262,8 +1243,6 @@ It's better to have 3 complete files than 10 incomplete files.`
           maxTokens: providerMaxTokens,
           maxOutputTokens: providerMaxTokens,
           stopSequences: [] // Don't stop early
-          // Note: Neither Groq nor Anthropic models support tool/function calling in this context
-          // We use XML tags for package detection instead
         };
         
         // Add temperature for non-reasoning models
@@ -1656,15 +1635,13 @@ Provide the complete file content without any truncation. Include all necessary 
                   completionClient = openrouter;
                 } else if (model.startsWith('openai/') || model.includes('gpt')) {
                   completionClient = openai;
-                } else if (model.startsWith('anthropic/') || model.includes('claude')) {
-                  completionClient = anthropic;
                 } else if (model.startsWith('google/')) {
                   completionClient = google;
                 } else {
-                  completionClient = groq;
+                  completionClient = openai;
                 }
                 
-                const completionModelName = model.replace(/^(openai|anthropic|google|openrouter)\//, '');
+                const completionModelName = model.replace(/^(openai|google|openrouter)\//, '');
                 const completionResult = await streamText({
                   model: completionClient(completionModelName),
                   messages: [

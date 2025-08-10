@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createGroq } from '@ai-sdk/groq';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import type { FileManifest } from '@/types/file-manifest';
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  baseURL: process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com/v1',
-});
+// Removed Groq and Anthropic providers
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENAI_BASE_URL,
 });
 
-// OpenRouter (OpenAI-compatible)
-const openrouter = createOpenAI({
+// OpenRouter official provider
+const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-  compatibility: 'compatible',
-  headers: {
-    'HTTP-Referer': process.env.OPENROUTER_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    'X-Title': process.env.OPENROUTER_APP_NAME || 'KPPM',
-  },
 });
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
@@ -65,7 +51,7 @@ const searchPlanSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, manifest, model = 'openai/gpt-oss-20b' } = await request.json();
+    const { prompt, manifest, model = 'openai/gpt-5' } = await request.json();
     
     console.log('[analyze-edit-intent] Request received');
     console.log('[analyze-edit-intent] Prompt:', prompt);
@@ -109,21 +95,15 @@ export async function POST(request: NextRequest) {
     
     // Select the appropriate AI model based on the request
     let aiModel;
-    if (model.startsWith('anthropic/')) {
-      aiModel = anthropic(model.replace('anthropic/', ''));
-  } else if (model.startsWith('openai/')) {
-      if (model.includes('gpt-oss')) {
-        aiModel = groq(model);
-      } else {
-        aiModel = openai(model.replace('openai/', ''));
-      }
-  } else if (model.startsWith('google/')) {
-    aiModel = google(model.replace('google/', ''));
-  } else if (model.startsWith('openrouter/')) {
+    if (model.startsWith('openai/')) {
+      aiModel = openai(model.replace('openai/', ''));
+    } else if (model.startsWith('google/')) {
+      aiModel = google(model.replace('google/', ''));
+    } else if (model.startsWith('openrouter/')) {
       aiModel = openrouter(model.replace('openrouter/', ''));
     } else {
-      // Default to groq if model format is unclear
-      aiModel = groq(model);
+      // Default to GPT-5 if model format is unclear
+      aiModel = openai('gpt-5');
     }
     
     console.log('[analyze-edit-intent] Using AI model:', model);

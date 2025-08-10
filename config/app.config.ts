@@ -34,8 +34,6 @@ export const appConfig = {
     availableModels: [
       'openrouter/qwen/qwen3-coder:free',
       'openai/gpt-5',
-      'moonshotai/kimi-k2-instruct',
-      'anthropic/claude-sonnet-4-20250514',
       'google/gemini-2.5-pro'
     ],
     
@@ -43,8 +41,6 @@ export const appConfig = {
     modelDisplayNames: {
       'openrouter/qwen/qwen3-coder:free': 'Qwen 3 Coder (Free, OpenRouter)',
       'openai/gpt-5': 'GPT-5',
-      'moonshotai/kimi-k2-instruct': 'Kimi K2 Instruct',
-      'anthropic/claude-sonnet-4-20250514': 'Sonnet 4',
       'google/gemini-2.5-pro': 'Gemini 2.5 Pro'
     } as Record<string, string>,
     
