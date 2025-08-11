@@ -22,8 +22,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
 import AnimatedCodeBackground from '@/components/AnimatedCodeBackground';
-import PromptSuggestions from '@/components/PromptSuggestions';
-import { PromptSuggestion } from '@/lib/prompt-suggestions';
 // import DemoFlow from '@/components/DemoFlow';
 
 // Wrap page content with Suspense to satisfy useSearchParams requirement
@@ -2045,17 +2043,6 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     await applyGeneratedCode(conversationContext.lastGeneratedCode, isEdit);
   };
 
-  const handleSuggestionClick = (suggestion: PromptSuggestion) => {
-    setAiChatInput(suggestion.prompt);
-    // Auto-focus the input after setting the suggestion
-    setTimeout(() => {
-      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-      }
-    }, 100);
-  };
 
   // Auto-scroll code display to bottom when streaming
   useEffect(() => {
@@ -3384,13 +3371,6 @@ Focus on the key sections and content, making it clean and modern.`;
               </div>
             )}
           </div>
-
-          {/* Prompt Suggestions - show after initial generation */}
-          <PromptSuggestions
-            onSuggestionClick={handleSuggestionClick}
-            isVisible={sandboxData !== null && conversationContext.appliedCode.length > 0}
-            sandboxActive={sandboxData !== null}
-          />
 
           <div className="p-4 border-t border-border bg-card">
             <div className="relative">
