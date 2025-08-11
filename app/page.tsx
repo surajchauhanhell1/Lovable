@@ -77,11 +77,8 @@ function AISandboxPageContent() {
   const [urlOverlayVisible, setUrlOverlayVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlStatus, setUrlStatus] = useState<string[]>([]);
-  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
-    return persisted === null ? true : persisted === 'true';
-  });
+  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(true);
+  const [isClient, setIsClient] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [homeScreenFading, setHomeScreenFading] = useState(false);
@@ -152,6 +149,9 @@ function AISandboxPageContent() {
 
   // Clear old conversation data on component mount and create/restore sandbox
   useEffect(() => {
+    // Mark as client-side to avoid hydration issues
+    setIsClient(true);
+    
     const initializePage = async () => {
       // Clear old conversation
       try {
@@ -213,6 +213,16 @@ function AISandboxPageContent() {
     
     initializePage();
   }, []); // Run only on mount
+  
+  // Handle client-side initialization after hydration
+  useEffect(() => {
+    if (isClient) {
+      const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
+      if (persisted !== null) {
+        setShowHomeScreen(persisted === 'true');
+      }
+    }
+  }, [isClient]);
   
   useEffect(() => {
     // Handle Escape key for home screen
