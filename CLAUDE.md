@@ -45,6 +45,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `install-packages/` - Automatically install npm packages
 - `get-sandbox-files/` - Retrieve sandbox file structure
 - `run-command/` - Execute commands in sandbox
+- `deploy-to-vercel/` - Deploy sandbox projects to live Vercel URLs
+- `generate-component-library/` - Create comprehensive component libraries
 
 #### AI Integration
 - Uses multiple AI providers (Anthropic, OpenAI, Groq)
@@ -74,6 +76,14 @@ The app uses XML tags in AI responses for automatic package management:
 4. Packages automatically installed in sandbox
 5. Files created/updated with real-time streaming feedback
 6. Commands executed with output streaming
+
+#### Deployment Flow
+1. User clicks deploy button in sandbox toolbar
+2. System collects all project files from E2B sandbox
+3. Essential files auto-generated if missing (package.json, vite.config, etc.)
+4. Files bundled and sent to Vercel deployment API
+5. Live URL returned and auto-opened in new tab
+6. User can share live website instantly
 
 #### Sandbox Lifecycle
 - Sandboxes auto-created on first interaction
