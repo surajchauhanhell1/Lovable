@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { Sandbox } from '@e2b/code-interpreter';
 
 declare global {
   var activeSandbox: any;
@@ -6,10 +7,27 @@ declare global {
   var existingFiles: Set<string>;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sandboxId = searchParams.get('sandbox') || undefined;
+
     // Check if sandbox exists
-    const sandboxExists = !!global.activeSandbox;
+    let sandboxExists = !!global.activeSandbox;
+    
+    // If not, but a sandboxId is provided, attempt reconnect
+    if (!sandboxExists && sandboxId) {
+      try {
+        console.log(`[sandbox-status] Attempting reconnect to sandbox ${sandboxId}...`);
+        const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
+        global.activeSandbox = sandbox;
+        const host = (sandbox as any).getHost(5173);
+        global.sandboxData = { sandboxId, url: `https://${host}` };
+        sandboxExists = true;
+      } catch (e) {
+        console.error('[sandbox-status] Reconnect failed:', e);
+      }
+    }
     
     let sandboxHealthy = false;
     let sandboxInfo = null;

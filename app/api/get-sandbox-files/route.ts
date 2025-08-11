@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { Sandbox } from '@e2b/code-interpreter';
 import { parseJavaScriptFile, buildComponentTree } from '@/lib/file-parser';
 import { FileManifest, FileInfo, RouteInfo } from '@/types/file-manifest';
 import type { SandboxState } from '@/types/sandbox';
@@ -7,8 +8,21 @@ declare global {
   var activeSandbox: any;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sandboxId = searchParams.get('sandbox') || undefined;
+
+    if (!global.activeSandbox && sandboxId) {
+      try {
+        console.log(`[get-sandbox-files] Attempting reconnect to sandbox ${sandboxId}...`);
+        const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
+        global.activeSandbox = sandbox;
+      } catch (e) {
+        console.error('[get-sandbox-files] Reconnect failed:', e);
+      }
+    }
+
     if (!global.activeSandbox) {
       return NextResponse.json({
         success: false,

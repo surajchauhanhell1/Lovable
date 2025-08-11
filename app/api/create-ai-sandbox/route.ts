@@ -100,7 +100,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     hmr: false,
-    allowedHosts: ['.e2b.app', 'localhost', '127.0.0.1']
+    // Allow both e2b.dev and e2b.app subdomains that proxy the sandbox
+    allowedHosts: ['.e2b.app', '.e2b.dev', 'e2b.app', 'e2b.dev', 'localhost', '127.0.0.1']
   }
 })"""
 
@@ -228,15 +229,19 @@ print('\\nAll files created successfully!')
     // Execute the setup script
     await sandbox.runCode(setupScript);
     
-    // Install dependencies
+    // Install dependencies (optionally with --legacy-peer-deps)
     console.log('[create-ai-sandbox] Installing dependencies...');
     await sandbox.runCode(`
 import subprocess
 import sys
 
 print('Installing npm packages...')
+cmd = ['npm', 'install']
+# Prefer legacy peers to avoid peer resolution fails in constrained envs
+cmd.append('--legacy-peer-deps')
+
 result = subprocess.run(
-    ['npm', 'install'],
+    cmd,
     cwd='/home/user/app',
     capture_output=True,
     text=True
@@ -245,8 +250,8 @@ result = subprocess.run(
 if result.returncode == 0:
     print('✓ Dependencies installed successfully')
 else:
-    print(f'⚠ Warning: npm install had issues: {result.stderr}')
-    # Continue anyway as it might still work
+    print(f'❌ npm install failed: {result.stderr}')
+    raise SystemExit('npm install failed')
     `);
     
     // Start Vite dev server

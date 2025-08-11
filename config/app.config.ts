@@ -27,22 +27,10 @@ export const appConfig = {
   
   // AI Model Configuration
   ai: {
-    // Default AI model
+    // Default and only AI model (forced)
     defaultModel: 'moonshotai/kimi-k2-instruct',
-    
-    // Available models
-    availableModels: [
-      'openai/gpt-5',
-      'moonshotai/kimi-k2-instruct',
-      'anthropic/claude-sonnet-4-20250514'
-    ],
-    
-    // Model display names
-    modelDisplayNames: {
-      'openai/gpt-5': 'GPT-5',
-      'moonshotai/kimi-k2-instruct': 'Kimi K2 Instruct',
-      'anthropic/claude-sonnet-4-20250514': 'Sonnet 4'
-    },
+    availableModels: ['moonshotai/kimi-k2-instruct'],
+    modelDisplayNames: { 'moonshotai/kimi-k2-instruct': 'Kimi K2 Instruct' },
     
     // Temperature settings for non-reasoning models
     defaultTemperature: 0.7,
@@ -72,7 +60,7 @@ export const appConfig = {
   // UI Configuration
   ui: {
     // Show/hide certain UI elements
-    showModelSelector: true,
+    showModelSelector: false,
     showStatusIndicator: true,
     
     // Animation durations (milliseconds)

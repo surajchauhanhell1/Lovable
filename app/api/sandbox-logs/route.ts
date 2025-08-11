@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Sandbox } from '@e2b/code-interpreter';
 
 declare global {
   var activeSandbox: any;
@@ -6,6 +7,19 @@ declare global {
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const sandboxId = searchParams.get('sandbox') || undefined;
+
+    if (!global.activeSandbox && sandboxId) {
+      try {
+        console.log(`[sandbox-logs] Attempting reconnect to sandbox ${sandboxId}...`);
+        const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
+        global.activeSandbox = sandbox;
+      } catch (e) {
+        console.error('[sandbox-logs] Reconnect failed:', e);
+      }
+    }
+
     if (!global.activeSandbox) {
       return NextResponse.json({ 
         success: false, 

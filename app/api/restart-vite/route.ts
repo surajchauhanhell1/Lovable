@@ -1,11 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { Sandbox } from '@e2b/code-interpreter';
 
 declare global {
   var activeSandbox: any;
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json().catch(() => ({}));
+    const sandboxId = body?.sandboxId as string | undefined;
+
+    if (!global.activeSandbox && sandboxId) {
+      try {
+        console.log(`[restart-vite] Attempting reconnect to sandbox ${sandboxId}...`);
+        const sandbox = await Sandbox.connect(sandboxId, { apiKey: process.env.E2B_API_KEY });
+        global.activeSandbox = sandbox;
+      } catch (e) {
+        console.error('[restart-vite] Reconnect failed:', e);
+      }
+    }
+
     if (!global.activeSandbox) {
       return NextResponse.json({ 
         success: false, 

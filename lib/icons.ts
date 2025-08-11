@@ -5,7 +5,7 @@ export {
   FiFile, 
   FiChevronRight, 
   FiChevronDown,
-  FiGithub 
+  
 } from 'react-icons/fi';
 
 export { 
