@@ -2761,6 +2761,7 @@ Focus on the key sections and content, making it clean and modern.`;
   return (
     <div className="font-sans bg-background text-foreground h-screen flex flex-col">
       {/* Home Screen Overlay */}
+      {showHomeScreen && (
       <div className={`fixed inset-0 z-50 transition-opacity duration-500 ${homeScreenFading ? 'opacity-0' : 'opacity-100'} overflow-y-auto`}>
         {/* Animated code background */}
         <div className="absolute inset-0 bg-white overflow-hidden">
@@ -2970,6 +2971,7 @@ Focus on the key sections and content, making it clean and modern.`;
           </div>
         </div>
       </div>
+      )}
       
       {!showHomeScreen && (
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
