@@ -2007,6 +2007,62 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
+  const deployToVercel = async () => {
+    if (!sandboxData) {
+      addChatMessage('No active sandbox to deploy. Create a project first!', 'system');
+      return;
+    }
+    
+    setLoading(true);
+    log('Deploying to Vercel...');
+    addChatMessage('🚀 Deploying your site to Vercel... This may take 30-60 seconds.', 'system');
+    
+    try {
+      const response = await fetch('/api/deploy-to-vercel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sandboxId: sandboxData.sandboxId,
+          projectName: 'my-site-' + Date.now().toString().slice(-6) // Unique name
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        log(`Deployment successful! Live at: ${data.url}`);
+        addChatMessage(
+          `🎉 **Deployment Successful!**\n\n` +
+          `🌐 **Live URL:** ${data.url}\n\n` +
+          `✨ Your site is now live on the internet!\n` +
+          `📋 Copy the URL above to share with anyone\n` +
+          `🔄 Changes? Just redeploy anytime with this button\n\n` +
+          `💡 **Pro tip:** Bookmark this URL - it's yours forever!`,
+          'system'
+        );
+        
+        // Auto-open the deployed site in a new tab after a short delay
+        setTimeout(() => {
+          window.open(data.url, '_blank');
+        }, 1000);
+        
+      } else {
+        throw new Error(data.error || 'Deployment failed');
+      }
+    } catch (error: any) {
+      log(`Deployment failed: ${error.message}`, 'error');
+      addChatMessage(
+        `❌ **Deployment Failed**\n\n` +
+        `Error: ${error.message}\n\n` +
+        `💡 **Try again:** The issue might be temporary\n` +
+        `🛠️ **Need help?** Make sure your project has valid React/HTML files`,
+        'system'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reapplyLastGeneration = async () => {
     if (!conversationContext.lastGeneratedCode) {
       addChatMessage('No previous generation to re-apply', 'system');

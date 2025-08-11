@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SandboxState } from '@/types/sandbox';
 
 interface DeploymentRequest {
   sandboxId?: string;
@@ -10,16 +11,20 @@ interface VercelFile {
   data: string;
 }
 
+declare global {
+  // Active E2B sandbox handle (may be undefined on serverless cold starts)
+  // eslint-disable-next-line no-var
+  var activeSandbox: any | undefined;
+  // Server-side cache of files captured during generation
+  // Must match existing global declaration exactly (no union)
+  // eslint-disable-next-line no-var
+  var sandboxState: SandboxState;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: DeploymentRequest = await req.json();
-    const { projectName = 'my-site' } = body;
-
-    if (!global.activeSandbox) {
-      return NextResponse.json({ 
-        error: 'No active sandbox found. Please create a project first.' 
-      }, { status: 400 });
-    }
+    const { projectName = 'my-site', sandboxId } = body;
 
     console.log('[deploy-vercel] Starting deployment process...');
 
@@ -27,21 +32,32 @@ export async function POST(req: NextRequest) {
     const files: VercelFile[] = [];
     
     try {
-      // Get the complete file structure from the sandbox
-      const result = await global.activeSandbox.filesystem.list('/home/user/app', { recursive: true });
-      
-      for (const item of result) {
-        if (item.type === 'file' && !shouldSkipFile(item.path)) {
-          try {
-            const content = await global.activeSandbox.filesystem.read(`/home/user/app/${item.path}`);
-            files.push({
-              file: item.path,
-              data: content
-            });
-          } catch (readError) {
-            console.warn(`[deploy-vercel] Could not read file ${item.path}:`, readError);
+      // Prefer server-side cached files captured during generation
+      const cachedFiles = global.sandboxState?.fileCache?.files;
+      if (cachedFiles && Object.keys(cachedFiles).length > 0) {
+        console.log('[deploy-vercel] Using cached files from sandboxState');
+        for (const [path, fileData] of Object.entries(cachedFiles)) {
+          if (!shouldSkipFile(path)) {
+            const content = (fileData as any).content as string;
+            files.push({ file: path, data: content });
           }
         }
+      } else if (global.activeSandbox) {
+        // Fallback to querying the live sandbox if available
+        console.log('[deploy-vercel] Cached files not found. Listing files from active sandbox');
+        const result = await global.activeSandbox.filesystem.list('/home/user/app', { recursive: true });
+        for (const item of result) {
+          if (item.type === 'file' && !shouldSkipFile(item.path)) {
+            try {
+              const content = await global.activeSandbox.filesystem.read(`/home/user/app/${item.path}`);
+              files.push({ file: item.path, data: content });
+            } catch (readError) {
+              console.warn(`[deploy-vercel] Could not read file ${item.path}:`, readError);
+            }
+          }
+        }
+      } else {
+        console.warn('[deploy-vercel] No cached files and no active sandbox handle available');
       }
 
       // Ensure we have essential files for a React/Vite project
