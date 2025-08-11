@@ -2013,17 +2013,34 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       return;
     }
     
+    // Check if we have files to deploy
+    if (!generationProgress.files || generationProgress.files.length === 0) {
+      addChatMessage('❌ **No files to deploy!**\n\nPlease generate some code first, then try deploying again.', 'system');
+      return;
+    }
+    
     setLoading(true);
     log('Deploying to Vercel...');
     addChatMessage('🚀 Deploying your site to Vercel... This may take 30-60 seconds.', 'system');
     
     try {
+      // Prepare files for deployment
+      const filesForDeployment = generationProgress.files
+        .filter(file => file.completed) // Only include completed files
+        .map(file => ({
+          path: file.path,
+          content: file.content
+        }));
+      
+      console.log(`[deploy] Sending ${filesForDeployment.length} files for deployment`);
+      
       const response = await fetch('/api/deploy-to-vercel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sandboxId: sandboxData.sandboxId,
-          projectName: 'my-site-' + Date.now().toString().slice(-6) // Unique name
+          projectName: 'my-site-' + Date.now().toString().slice(-6), // Unique name
+          files: filesForDeployment
         })
       });
       
@@ -3157,9 +3174,12 @@ Focus on the key sections and content, making it clean and modern.`;
           <Button 
             variant="code"
             onClick={deployToVercel}
-            disabled={!sandboxData || loading}
+            disabled={!sandboxData || loading || !generationProgress.files || generationProgress.files.length === 0}
             size="sm"
-            title="Deploy your site to Vercel"
+            title={generationProgress.files && generationProgress.files.length > 0 
+              ? "Deploy your site to Vercel" 
+              : "Generate some code first to deploy"
+            }
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

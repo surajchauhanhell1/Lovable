@@ -4,6 +4,10 @@ import type { SandboxState } from '@/types/sandbox';
 interface DeploymentRequest {
   sandboxId?: string;
   projectName?: string;
+  files?: Array<{
+    path: string;
+    content: string;
+  }>;
 }
 
 interface VercelFile {
@@ -21,54 +25,110 @@ declare global {
   var sandboxState: SandboxState;
 }
 
+// Add a simple health check
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'Deploy to Vercel endpoint is working',
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: DeploymentRequest = await req.json();
-    const { projectName = 'my-site', sandboxId } = body;
+    const { projectName = 'my-site', sandboxId, files: requestFiles } = body;
 
     console.log('[deploy-vercel] Starting deployment process...');
+    console.log('[deploy-vercel] Request body:', { 
+      projectName, 
+      sandboxId, 
+      filesCount: requestFiles?.length || 0 
+    });
 
-    // Get all files from the sandbox
+    // Get all files for deployment
     const files: VercelFile[] = [];
     
     try {
-      // Prefer server-side cached files captured during generation
-      const cachedFiles = global.sandboxState?.fileCache?.files;
-      if (cachedFiles && Object.keys(cachedFiles).length > 0) {
-        console.log('[deploy-vercel] Using cached files from sandboxState');
-        for (const [path, fileData] of Object.entries(cachedFiles)) {
-          if (!shouldSkipFile(path)) {
-            const content = (fileData as any).content as string;
-            files.push({ file: path, data: content });
+      if (requestFiles && requestFiles.length > 0) {
+        // Use files sent from frontend
+        console.log('[deploy-vercel] Using files from request');
+        for (const file of requestFiles) {
+          // Validate file structure
+          if (!file.path || !file.content) {
+            console.warn(`[deploy-vercel] Skipping invalid file:`, file);
+            continue;
           }
-        }
-      } else if (global.activeSandbox) {
-        // Fallback to querying the live sandbox if available
-        console.log('[deploy-vercel] Cached files not found. Listing files from active sandbox');
-        const result = await global.activeSandbox.filesystem.list('/home/user/app', { recursive: true });
-        for (const item of result) {
-          if (item.type === 'file' && !shouldSkipFile(item.path)) {
-            try {
-              const content = await global.activeSandbox.filesystem.read(`/home/user/app/${item.path}`);
-              files.push({ file: item.path, data: content });
-            } catch (readError) {
-              console.warn(`[deploy-vercel] Could not read file ${item.path}:`, readError);
-            }
+          
+          if (!shouldSkipFile(file.path)) {
+            files.push({ file: file.path, data: file.content });
+          } else {
+            console.log(`[deploy-vercel] Skipping file: ${file.path}`);
           }
         }
       } else {
-        console.warn('[deploy-vercel] No cached files and no active sandbox handle available');
+        // Fallback: try to get files from global state (for development)
+        console.log('[deploy-vercel] No files in request, checking global state...');
+        
+        // Check if we're in development and have access to sandbox
+        if (typeof global !== 'undefined' && global.sandboxState?.fileCache?.files) {
+          const cachedFiles = global.sandboxState.fileCache.files;
+          console.log('[deploy-vercel] Using cached files from sandboxState');
+          for (const [path, fileData] of Object.entries(cachedFiles)) {
+            if (!shouldSkipFile(path)) {
+              const content = (fileData as any).content as string;
+              files.push({ file: path, data: content });
+            }
+          }
+        } else if (typeof global !== 'undefined' && global.activeSandbox) {
+          // Fallback to querying the live sandbox if available
+          console.log('[deploy-vercel] Cached files not found. Listing files from active sandbox');
+          const result = await global.activeSandbox.filesystem.list('/home/user/app', { recursive: true });
+          for (const item of result) {
+            if (item.type === 'file' && !shouldSkipFile(item.path)) {
+              try {
+                const content = await global.activeSandbox.filesystem.read(`/home/user/app/${item.path}`);
+                files.push({ file: item.path, data: content });
+              } catch (readError) {
+                console.warn(`[deploy-vercel] Could not read file ${item.path}:`, readError);
+              }
+            }
+          }
+        } else {
+          console.warn('[deploy-vercel] No files provided and no global sandbox state available');
+          return NextResponse.json({ 
+            error: 'No files provided for deployment. Please ensure your project has been generated and try again.' 
+          }, { status: 400 });
+        }
       }
 
       // Ensure we have essential files for a React/Vite project
       await ensureEssentialFiles(files);
 
       console.log(`[deploy-vercel] Collected ${files.length} files for deployment`);
+      console.log('[deploy-vercel] File paths:', files.map(f => f.file));
+      
+      // Validate that we have the minimum required files
+      if (files.length === 0) {
+        console.error('[deploy-vercel] No files available for deployment');
+        return NextResponse.json({ 
+          error: 'No files available for deployment. Please ensure your project has been generated.' 
+        }, { status: 400 });
+      }
+      
+      // Check for essential files
+      const hasPackageJson = files.some(f => f.file === 'package.json');
+      const hasIndexHtml = files.some(f => f.file === 'index.html');
+      const hasMainEntry = files.some(f => f.file.includes('main.') || f.file.includes('index.') || f.file.includes('App.'));
+      
+      if (!hasPackageJson || !hasIndexHtml || !hasMainEntry) {
+        console.warn('[deploy-vercel] Missing essential files, but continuing with generated defaults');
+      }
 
     } catch (error) {
       console.error('[deploy-vercel] Error collecting files:', error);
       return NextResponse.json({ 
-        error: 'Failed to collect project files from sandbox' 
+        error: 'Failed to collect project files for deployment' 
       }, { status: 500 });
     }
 
@@ -76,6 +136,7 @@ export async function POST(req: NextRequest) {
     const deployment = await deployToVercel(files, projectName);
     
     if (deployment.error) {
+      console.error('[deploy-vercel] Vercel deployment failed:', deployment.error);
       return NextResponse.json({ 
         error: deployment.error 
       }, { status: 500 });
@@ -271,6 +332,8 @@ async function deployToVercel(files: VercelFile[], projectName: string) {
     };
 
     console.log(`[deploy-vercel] Deploying ${files.length} files to Vercel...`);
+    console.log('[deploy-vercel] Project name:', projectName);
+    console.log('[deploy-vercel] Deployment payload size:', JSON.stringify(deploymentPayload).length, 'bytes');
 
     const response = await fetch('https://api.vercel.com/v13/deployments', {
       method: 'POST',
@@ -281,18 +344,41 @@ async function deployToVercel(files: VercelFile[], projectName: string) {
       body: JSON.stringify(deploymentPayload)
     });
 
+    console.log('[deploy-vercel] Vercel API response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('[deploy-vercel] Vercel API error:', errorData);
+      let errorData = '';
+      try {
+        errorData = await response.text();
+      } catch (e) {
+        errorData = 'Could not read error response';
+      }
+      
+      console.error('[deploy-vercel] Vercel API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      
       return { 
-        error: `Vercel deployment failed: ${response.status} ${response.statusText}` 
+        error: `Vercel deployment failed: ${response.status} ${response.statusText}. ${errorData}` 
       };
     }
 
-    const deployment = await response.json();
+    let deployment;
+    try {
+      deployment = await response.json();
+      console.log('[deploy-vercel] Vercel deployment response:', deployment);
+    } catch (e) {
+      console.error('[deploy-vercel] Failed to parse Vercel response:', e);
+      return {
+        error: 'Failed to parse Vercel deployment response'
+      };
+    }
     
     // Construct the deployment URL
     const deploymentUrl = `https://${deployment.url}`;
+    console.log('[deploy-vercel] Final deployment URL:', deploymentUrl);
     
     return {
       success: true,
