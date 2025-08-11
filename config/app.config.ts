@@ -27,10 +27,10 @@ export const appConfig = {
   
   // AI Model Configuration
   ai: {
-    // Default and only AI model (forced)
+    // Default and only AI model (forced) - Groq
     defaultModel: 'moonshotai/kimi-k2-instruct',
     availableModels: ['moonshotai/kimi-k2-instruct'],
-    modelDisplayNames: { 'moonshotai/kimi-k2-instruct': 'Kimi K2 Instruct' },
+    modelDisplayNames: { 'moonshotai/kimi-k2-instruct': 'Kimi K2 Instruct (Groq)' },
     
     // Temperature settings for non-reasoning models
     defaultTemperature: 0.7,

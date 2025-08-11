@@ -74,7 +74,11 @@ function AISandboxPageContent() {
   const [urlOverlayVisible, setUrlOverlayVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlStatus, setUrlStatus] = useState<string[]>([]);
-  const [showHomeScreen, setShowHomeScreen] = useState(true);
+  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
+    return persisted === null ? true : persisted === 'true';
+  });
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [homeScreenFading, setHomeScreenFading] = useState(false);
@@ -171,11 +175,14 @@ function AISandboxPageContent() {
             setSandboxData(data.sandboxData);
             updateStatus('Sandbox active', true);
 
-            // Ensure URL reflects the restored sandbox ID and selected model
+            // Update URL without navigating/remounting
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.set('sandbox', data.sandboxData.sandboxId);
             newParams.set('model', aiModel);
-            router.push(`/?${newParams.toString()}`, { scroll: false });
+            if (typeof window !== 'undefined') {
+              const newUrl = `/?${newParams.toString()}`;
+              window.history.replaceState(null, '', newUrl);
+            }
 
             // Fade out loading background after restore
             setTimeout(() => {
@@ -209,6 +216,9 @@ function AISandboxPageContent() {
         setHomeScreenFading(true);
         setTimeout(() => {
           setShowHomeScreen(false);
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem('ui.showHomeScreen', 'false');
+          }
           setHomeScreenFading(false);
         }, 500);
       }
@@ -407,11 +417,14 @@ function AISandboxPageContent() {
         log(`Sandbox ID: ${data.sandboxId}`);
         log(`URL: ${data.url}`);
         
-        // Update URL with sandbox ID
+        // Update URL with sandbox ID without navigating/remounting
         const newParams = new URLSearchParams(searchParams.toString());
         newParams.set('sandbox', data.sandboxId);
         newParams.set('model', aiModel);
-        router.push(`/?${newParams.toString()}`, { scroll: false });
+        if (typeof window !== 'undefined') {
+          const newUrl = `/?${newParams.toString()}`;
+          window.history.replaceState(null, '', newUrl);
+        }
         
         // Fade out loading background after sandbox loads
         setTimeout(() => {
@@ -2361,8 +2374,13 @@ Focus on the key sections and content, making it clean and modern while preservi
     e.preventDefault();
     if (!homeUrlInput.trim()) return;
     
-    setHomeScreenFading(true);
-    
+    // Immediately switch off home screen to avoid flicker/remounts
+    setShowHomeScreen(false);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('ui.showHomeScreen', 'false');
+    }
+    setHomeScreenFading(false);
+
     // Clear messages and immediately show the cloning message
     setChatMessages([]);
     let displayUrl = homeUrlInput.trim();
@@ -2382,15 +2400,11 @@ Focus on the key sections and content, making it clean and modern while preservi
       captureUrlScreenshot(displayUrl);
     }
     
-    // Set loading stage immediately before hiding home screen
+    // Set loading stage and switch to preview immediately
     setLoadingStage('gathering');
-    // Also ensure we're on preview tab to show the loading overlay
     setActiveTab('preview');
-    
+
     setTimeout(async () => {
-      setShowHomeScreen(false);
-      setHomeScreenFading(false);
-      
       // Wait for sandbox to be ready (if it's still creating)
       await sandboxPromise;
       

@@ -171,7 +171,9 @@ export async function POST(request: NextRequest) {
             
             // STEP 1: Get search plan from AI
             try {
-              const intentResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/analyze-edit-intent`, {
+              const vercelUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined;
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || vercelUrl || 'http://localhost:3000';
+              const intentResponse = await fetch(`${baseUrl}/api/analyze-edit-intent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt, manifest, model })
@@ -1152,11 +1154,9 @@ CRITICAL: When files are provided in the context:
         const packagesToInstall: string[] = [];
         
         // Determine which provider to use based on model
-        const isAnthropic = model.startsWith('anthropic/');
-        const isOpenAI = model.startsWith('openai/gpt-5');
-        const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : groq);
-        const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
+        // Force Groq as provider
+        const modelProvider = groq;
+        const actualModel = model;
         
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
@@ -1232,14 +1232,7 @@ It's better to have 3 complete files than 10 incomplete files.`
           streamOptions.temperature = 0.7;
         }
         
-        // Add reasoning effort for GPT-5 models
-        if (isOpenAI) {
-          streamOptions.experimental_providerMetadata = {
-            openai: {
-              reasoningEffort: 'high'
-            }
-          };
-        }
+        // Using Groq; no OpenAI-specific provider metadata
         
         const result = await streamText(streamOptions);
         

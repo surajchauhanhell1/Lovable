@@ -93,19 +93,8 @@ export async function POST(request: NextRequest) {
     console.log('[analyze-edit-intent] File summary preview:', fileSummary.split('\n').slice(0, 5).join('\n'));
     
     // Select the appropriate AI model based on the request
-    let aiModel;
-    if (model.startsWith('anthropic/')) {
-      aiModel = anthropic(model.replace('anthropic/', ''));
-    } else if (model.startsWith('openai/')) {
-      if (model.includes('gpt-oss')) {
-        aiModel = groq(model);
-      } else {
-        aiModel = openai(model.replace('openai/', ''));
-      }
-    } else {
-      // Default to groq if model format is unclear
-      aiModel = groq(model);
-    }
+  // Force Groq as provider
+  const aiModel = groq(model);
     
     console.log('[analyze-edit-intent] Using AI model:', model);
     

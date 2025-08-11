@@ -58,11 +58,13 @@ export async function POST(request: NextRequest) {
         
       case 'clear-old':
         // Clear old conversation data but keep recent context
+        // Make this action idempotent: if there's no active conversation, just return success
         if (!global.conversationState) {
           return NextResponse.json({
-            success: false,
-            error: 'No active conversation to clear'
-          }, { status: 400 });
+            success: true,
+            message: 'No active conversation to clear',
+            state: null
+          });
         }
         
         // Keep only recent data
