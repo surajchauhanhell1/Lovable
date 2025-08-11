@@ -3228,7 +3228,8 @@ Focus on the key sections and content, making it clean and modern.`;
             </svg>
           </Button>
           
-          {/* Deploy to Vercel button */}
+          {/* Deploy to Vercel button - Commented out for now */}
+          {/*
           <Button 
             variant="code"
             onClick={deployToVercel}
@@ -3243,6 +3244,7 @@ Focus on the key sections and content, making it clean and modern.`;
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </Button>
+          */}
           
           <div className="inline-flex items-center gap-2 bg-[#36322F] text-white px-3 py-1.5 rounded-[10px] text-sm font-medium [box-shadow:inset_0px_-2px_0px_0px_#171310,_0px_1px_6px_0px_rgba(58,_33,_8,_58%)]">
             <span id="status-text">{status.text}</span>
