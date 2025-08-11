@@ -1151,9 +1151,7 @@ CRITICAL: When files are provided in the context:
         const isOpenAI = model.startsWith('openai/gpt-5');
         const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : groq);
         const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' :
-                           (model === 'openai/gpt-5-nano') ? 'gpt-5-nano' :
-                           (model === 'openai/gpt-5-mini') ? 'gpt-5-mini' : model;
+                           (model === 'openai/gpt-5') ? 'gpt-5' : model;
         
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
@@ -1231,14 +1229,9 @@ It's better to have 3 complete files than 10 incomplete files.`
         
         // Add reasoning effort for GPT-5 models
         if (isOpenAI) {
-          let reasoningEffort = 'medium'; // default for gpt-5-nano and gpt-5-mini
-          if (model === 'openai/gpt-5') {
-            reasoningEffort = 'high';
-          }
-          
           streamOptions.experimental_providerMetadata = {
             openai: {
-              reasoningEffort: reasoningEffort
+              reasoningEffort: 'high'
             }
           };
         }
@@ -1474,16 +1467,7 @@ It's better to have 3 complete files than 10 incomplete files.`
         // Validate generated code for truncation issues
         const truncationWarnings: string[] = [];
         
-        // Check for common truncation patterns - be more selective about ellipsis
-        const ellipsisCount = (generatedCode.match(/\.\.\./g) || []).length;
-        const spreadCount = (generatedCode.match(/\.\.\.[\w]+/g) || []).length;
-        const suspiciousEllipsis = ellipsisCount > spreadCount && 
-                                   generatedCode.includes('...') && 
-                                   !generatedCode.includes('Loading...');
-        
-        if (suspiciousEllipsis) {
-          truncationWarnings.push('Code contains suspicious "..." patterns that may indicate truncation');
-        }
+        // Skip ellipsis checking entirely - too many false positives with spread operators, loading text, etc.
         
         // Check for unclosed file tags
         const fileOpenCount = (generatedCode.match(/<file path="/g) || []).length;
@@ -1499,57 +1483,26 @@ It's better to have 3 complete files than 10 incomplete files.`
           const filePath = truncationMatch[1];
           const content = truncationMatch[2];
           
-          // Check for obviously truncated content
-          if (content.includes('</h') && !content.includes('</html>') && 
-              !content.includes('</h1>') && !content.includes('</h2>') && 
-              !content.includes('</h3>') && !content.includes('</h4>') && 
-              !content.includes('</h5>') && !content.includes('</h6>')) {
+          // Only check for really obvious HTML truncation - file ends with opening tag
+          if (content.trim().endsWith('<') || content.trim().endsWith('</')) {
             truncationWarnings.push(`File ${filePath} appears to have incomplete HTML tags`);
           }
           
-          // Check for components that end with "..." in text
-          if (content.trim().endsWith('...') || content.includes('>...</')) {
-            truncationWarnings.push(`File ${filePath} may be truncated (ends with ...)`);
-          }
+          // Skip "..." check - too many false positives with loading text, etc.
           
-          // Check for incomplete React components - only for JS/TS files
+          // Only check for SEVERE truncation issues
           if (filePath.match(/\.(jsx?|tsx?)$/)) {
-            const hasExport = content.includes('export') || content.includes('module.exports');
-            const hasReturn = content.includes('return');
-            const hasClosingBrace = content.trim().endsWith('}') || content.trim().endsWith(';') || content.trim().endsWith('>');
-            
-            // Only flag missing export for component files, not main.jsx or index files
-            if (!hasExport && content.length > 100 && !filePath.includes('main.') && !filePath.includes('index.')) {
-              truncationWarnings.push(`File ${filePath} missing export statement`);
-            }
-            
-            // Check for functions without return only if it's a component function
-            if (content.includes('function') && !hasReturn && !content.includes('=>') && 
-                content.includes('(') && content.includes(')') && content.length > 100) {
-              // Only flag if it looks like a React component (has JSX)
-              if (content.includes('<') && content.includes('>')) {
-                truncationWarnings.push(`File ${filePath} has function without return statement`);
-              }
-            }
-            
-            // Only flag abrupt ending if file is really short or clearly incomplete
-            if (!hasClosingBrace && content.length < 50 && content.trim() !== '') {
-              truncationWarnings.push(`File ${filePath} appears to end abruptly`);
-            }
-            
-            // Check for unmatched brackets - with a tolerance for template literals
+            // Only check for severely unmatched brackets (more than 3 difference)
             const openBraces = (content.match(/{/g) || []).length;
             const closeBraces = (content.match(/}/g) || []).length;
             const braceDiff = Math.abs(openBraces - closeBraces);
-            if (braceDiff > 1) { // Allow small differences due to template literals
-              truncationWarnings.push(`File ${filePath} has unmatched braces (${openBraces} open, ${closeBraces} closed)`);
+            if (braceDiff > 3) { // Only flag severe mismatches
+              truncationWarnings.push(`File ${filePath} has severely unmatched braces (${openBraces} open, ${closeBraces} closed)`);
             }
             
-            const openParens = (content.match(/\(/g) || []).length;
-            const closeParens = (content.match(/\)/g) || []).length;
-            const parenDiff = Math.abs(openParens - closeParens);
-            if (parenDiff > 2) { // Allow small differences
-              truncationWarnings.push(`File ${filePath} has unmatched parentheses`);
+            // Check if file is extremely short and looks incomplete
+            if (content.length < 20 && content.includes('function') && !content.includes('}')) {
+              truncationWarnings.push(`File ${filePath} appears severely truncated`);
             }
           }
         }

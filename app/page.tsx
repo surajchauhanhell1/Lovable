@@ -298,7 +298,10 @@ export default function AISandboxPage() {
               
               switch (data.type) {
                 case 'command':
-                  addChatMessage(data.command, 'command', { commandType: 'input' });
+                  // Don't show npm install commands - they're handled by info messages
+                  if (!data.command.includes('npm install')) {
+                    addChatMessage(data.command, 'command', { commandType: 'input' });
+                  }
                   break;
                 case 'output':
                   addChatMessage(data.message, 'command', { commandType: 'output' });
@@ -529,7 +532,8 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   break;
                   
                 case 'command':
-                  if (data.command) {
+                  // Don't show npm install commands - they're handled by info messages
+                  if (data.command && !data.command.includes('npm install')) {
                     addChatMessage(data.command, 'command', { commandType: 'input' });
                   }
                   break;
@@ -584,6 +588,13 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                   
                 case 'warning':
                   addChatMessage(`${data.message}`, 'system');
+                  break;
+                  
+                case 'info':
+                  // Show info messages, especially for package installation
+                  if (data.message) {
+                    addChatMessage(data.message, 'system');
+                  }
                   break;
               }
             } catch (e) {
@@ -3236,6 +3247,48 @@ Focus on the key sections and content, making it clean and modern.`;
                     </div>
                   )}
                 </div>
+                
+                {/* Live streaming response display */}
+                {generationProgress.streamedCode && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="mt-3 border-t border-gray-300 pt-3"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-xs font-medium text-gray-600">AI Response Stream</span>
+                      </div>
+                      <div className="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent" />
+                    </div>
+                    <div className="bg-gray-900 border border-gray-700 rounded max-h-32 overflow-y-auto scrollbar-hide">
+                      <SyntaxHighlighter
+                        language="jsx"
+                        style={vscDarkPlus}
+                        customStyle={{
+                          margin: 0,
+                          padding: '0.75rem',
+                          fontSize: '11px',
+                          lineHeight: '1.5',
+                          background: 'transparent',
+                          maxHeight: '8rem',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {(() => {
+                          const lastContent = generationProgress.streamedCode.slice(-1000);
+                          // Show the last part of the stream, starting from a complete tag if possible
+                          const startIndex = lastContent.indexOf('<');
+                          return startIndex !== -1 ? lastContent.slice(startIndex) : lastContent;
+                        })()}
+                      </SyntaxHighlighter>
+                      <span className="inline-block w-2 h-3 bg-orange-400 ml-3 mb-3 animate-pulse" />
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
           </div>
@@ -3270,7 +3323,7 @@ Focus on the key sections and content, making it clean and modern.`;
 
         {/* Right Panel - Preview or Generation (2/3 of remaining width) */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-2 bg-card border-b border-border flex justify-between items-center">
+          <div className="px-4 py-2 bg-card border-b border-border flex justify-between items-center">
             <div className="flex items-center gap-4">
               <div className="flex bg-[#36322F] rounded-lg p-1">
                 <button
