@@ -97,6 +97,11 @@ GROQ_API_KEY=your_groq_api_key           # Optional
 - All components use centralized icon imports from `@/lib/icons`
 - Avoid direct icon library imports to prevent Turbopack chunk issues
 
+#### Hydration and State Management
+- Client-side state initialization to prevent hydration errors
+- Uses loading state during hydration for consistent rendering
+- Session storage persistence for UI state (home screen visibility)
+
 #### Error Handling
 - Comprehensive streaming error feedback
 - Automatic truncation recovery (disabled by default)

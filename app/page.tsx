@@ -22,6 +22,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
 import AnimatedCodeBackground from '@/components/AnimatedCodeBackground';
+import PromptSuggestions from '@/components/PromptSuggestions';
+import { PromptSuggestion } from '@/lib/prompt-suggestions';
 // import DemoFlow from '@/components/DemoFlow';
 
 // Wrap page content with Suspense to satisfy useSearchParams requirement
@@ -74,11 +76,27 @@ function AISandboxPageContent() {
   const [urlOverlayVisible, setUrlOverlayVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlStatus, setUrlStatus] = useState<string[]>([]);
-  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
-    return persisted === null ? true : persisted === 'true';
-  });
+  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // Handle client-side hydration for showHomeScreen state
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
+      if (persisted !== null) {
+        setShowHomeScreen(persisted === 'true');
+      }
+    }
+  }, []);
+
+  // Helper function to update showHomeScreen and persist to sessionStorage
+  const updateShowHomeScreen = (value: boolean) => {
+    setShowHomeScreen(value);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('ui.showHomeScreen', value.toString());
+    }
+  };
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [homeScreenFading, setHomeScreenFading] = useState(false);
@@ -215,7 +233,7 @@ function AISandboxPageContent() {
       if (e.key === 'Escape' && showHomeScreen) {
         setHomeScreenFading(true);
         setTimeout(() => {
-          setShowHomeScreen(false);
+          updateShowHomeScreen(false);
           if (typeof window !== 'undefined') {
             window.sessionStorage.setItem('ui.showHomeScreen', 'false');
           }
@@ -1977,10 +1995,14 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         log(`Component library generated! Created ${data.componentsGenerated} components`);
         addChatMessage(
           `✅ Component library generated successfully!\n\n` +
-          `📦 Created ${data.componentsGenerated} components:\n` +
-          `${data.results.filesCreated.join(', ')}\n\n` +
-          `💡 Components are available in your components/ui/ folder.\n` +
-          `Import them like: import { Button } from '@/components/ui/button'`,
+          `📦 Created ${data.componentsGenerated} components with full showcase page\n\n` +
+          `🎨 **Visit /components in your sandbox** to see:\n` +
+          `• Live component previews\n` +
+          `• Copy-paste ready code\n` +
+          `• Usage examples\n` +
+          `• Interactive demos\n\n` +
+          `💡 Components: ${data.results.filesCreated.filter((f: string) => f.includes('components/ui')).join(', ')}\n\n` +
+          `🔗 Navigate to your sandbox and visit the /components page!`,
           'system'
         );
         
@@ -2021,6 +2043,18 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     addChatMessage('Re-applying last generation...', 'system');
     const isEdit = conversationContext.appliedCode.length > 0;
     await applyGeneratedCode(conversationContext.lastGeneratedCode, isEdit);
+  };
+
+  const handleSuggestionClick = (suggestion: PromptSuggestion) => {
+    setAiChatInput(suggestion.prompt);
+    // Auto-focus the input after setting the suggestion
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }, 100);
   };
 
   // Auto-scroll code display to bottom when streaming
@@ -2432,7 +2466,7 @@ Focus on the key sections and content, making it clean and modern while preservi
     if (!homeUrlInput.trim()) return;
     
     // Immediately switch off home screen to avoid flicker/remounts
-    setShowHomeScreen(false);
+    updateShowHomeScreen(false);
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem('ui.showHomeScreen', 'false');
     }
@@ -2815,6 +2849,16 @@ Focus on the key sections and content, making it clean and modern.`;
     }, 500);
   };
 
+  // Show a loading state during hydration to prevent mismatch
+  if (!isClient) {
+    return (
+      <div className="font-sans bg-background text-foreground h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="font-sans bg-background text-foreground h-screen flex flex-col">
       {/* Home Screen Overlay */}
@@ -2831,7 +2875,7 @@ Focus on the key sections and content, making it clean and modern.`;
           onClick={() => {
             setHomeScreenFading(true);
             setTimeout(() => {
-              setShowHomeScreen(false);
+              updateShowHomeScreen(false);
               setHomeScreenFading(false);
             }, 500);
           }}
@@ -2852,7 +2896,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              setShowHomeScreen(true);
+              updateShowHomeScreen(true);
               router.push('/');
             }}
           />
@@ -3046,7 +3090,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              setShowHomeScreen(true);
+              updateShowHomeScreen(true);
               router.push('/');
             }}
           />
@@ -3340,6 +3384,13 @@ Focus on the key sections and content, making it clean and modern.`;
               </div>
             )}
           </div>
+
+          {/* Prompt Suggestions - show after initial generation */}
+          <PromptSuggestions
+            onSuggestionClick={handleSuggestionClick}
+            isVisible={sandboxData !== null && conversationContext.appliedCode.length > 0}
+            sandboxActive={sandboxData !== null}
+          />
 
           <div className="p-4 border-t border-border bg-card">
             <div className="relative">
