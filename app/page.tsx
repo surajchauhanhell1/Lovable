@@ -3203,7 +3203,7 @@ Focus on the key sections and content, making it clean and modern.`;
             disabled={!sandboxData || loading || !generationProgress.files || generationProgress.files.length === 0}
             size="sm"
             title={generationProgress.files && generationProgress.files.length > 0 
-              ? "Deploy to Vercel (requires token)" 
+              ? "Deploy your site to Vercel" 
               : "Generate some code first to deploy"
             }
           >
