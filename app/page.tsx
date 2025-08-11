@@ -2044,6 +2044,79 @@ Tip: I automatically detect and install npm packages from your code imports (lik
   };
 
 
+  // Complete reset function - clears sandbox and all state
+  const resetEverything = async () => {
+    try {
+      // Set loading state while resetting
+      setLoading(true);
+      setStatus({ text: 'Resetting...', active: true });
+
+      // Kill the current sandbox
+      await fetch('/api/kill-sandbox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      // Reset all state
+      setSandboxData(null);
+      setChatMessages([
+        {
+          content: 'Welcome! I can help you generate code with full context of your sandbox files and structure. Just start chatting - I\'ll automatically create a sandbox for you if needed!\n\nTip: If you see package errors like "react-router-dom not found", just type "npm install" or "check packages" to automatically install missing packages.',
+          type: 'system',
+          timestamp: new Date()
+        }
+      ]);
+      setLoading(false);
+      setStatus({ text: 'Not connected', active: false });
+      setStructureContent('No sandbox created yet');
+      setAiChatInput('');
+      setActiveTab('preview');
+      
+      // Reset generation progress
+      setGenerationProgress({
+        isGenerating: false,
+        status: '',
+        components: [],
+        currentComponent: 0,
+        streamedCode: '',
+        isStreaming: false,
+        isThinking: false,
+        files: [],
+        lastProcessedPosition: 0
+      });
+
+      // Reset conversation context
+      setConversationContext({
+        scrapedWebsites: [],
+        generatedComponents: [],
+        appliedCode: [],
+        currentProject: '',
+        lastGeneratedCode: undefined
+      });
+
+      // Clear URL inputs
+      setHomeUrlInput('');
+      setHomeContextInput('');
+      setUrlScreenshot(null);
+      setScreenshotError(null);
+
+      // Add a small delay for better UX, then go to home screen
+      setTimeout(() => {
+        updateShowHomeScreen(true);
+        setStatus({ text: 'Ready for new project', active: false });
+      }, 500);
+      
+      console.log('Successfully reset everything');
+    } catch (error) {
+      console.error('Error during reset:', error);
+      // Still go to home screen even if reset partially failed
+      setTimeout(() => {
+        updateShowHomeScreen(true);
+        setStatus({ text: 'Reset complete', active: false });
+      }, 500);
+    }
+  };
+
   // Auto-scroll code display to bottom when streaming
   useEffect(() => {
     if (codeDisplayRef.current && generationProgress.isStreaming) {
@@ -2883,7 +2956,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              updateShowHomeScreen(true);
+              resetEverything();
               router.push('/');
             }}
           />
@@ -3077,7 +3150,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              updateShowHomeScreen(true);
+              resetEverything();
               router.push('/');
             }}
           />
