@@ -2021,7 +2021,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     
     setLoading(true);
     log('Deploying to Vercel...');
-    addChatMessage('🚀 Deploying your site to Vercel... This may take 30-60 seconds.', 'system');
+    addChatMessage('🚀 **Demo Deployment in Progress**\n\nDeploying to our Vercel account for demo purposes... This may take 30-60 seconds.\n\n⚠️ **Note:** This deployment will be on our account, not yours.', 'system');
     
     try {
       // Prepare files for deployment
@@ -2058,12 +2058,11 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       if (data.success) {
         log(`Deployment successful! Live at: ${data.url}`);
         addChatMessage(
-          `🎉 **Deployment Successful!**\n\n` +
+          `🎉 **Demo Deployment Successful!**\n\n` +
           `🌐 **Live URL:** ${data.url}\n\n` +
-          `✨ Your site is now live on the internet!\n` +
-          `📋 Copy the URL above to share with anyone\n` +
-          `🔄 Changes? Just redeploy anytime with this button\n\n` +
-          `💡 **Pro tip:** Bookmark this URL - it's yours forever!`,
+          `⚠️ **Important:** This deployment is on our Vercel account (demo purposes)\n` +
+          `📋 You can share this URL, but we control the deployment\n\n` +
+          `💡 **Want your own deployment?** Download as ZIP and deploy to your own Vercel account!`,
           'system'
         );
         
@@ -3193,6 +3192,39 @@ Focus on the key sections and content, making it clean and modern.`;
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </Button>
+          
+          {/* Manual Deploy Instructions Button */}
+          <Button 
+            variant="outline"
+            onClick={() => {
+              addChatMessage(
+                `🚀 **Deploy to Your Own Vercel Account**\n\n` +
+                `Here's how to deploy your site to your own Vercel account:\n\n` +
+                `1️⃣ **Download your project:**\n` +
+                `   • Click the download button (📦) to get your project as ZIP\n` +
+                `   • Extract the ZIP file to a folder\n\n` +
+                `2️⃣ **Go to Vercel:**\n` +
+                `   • Visit [vercel.com](https://vercel.com)\n` +
+                `   • Sign up/login with your GitHub, GitLab, or Bitbucket account\n\n` +
+                `3️⃣ **Create new project:**\n` +
+                `   • Click "New Project"\n` +
+                `   • Import your extracted folder\n` +
+                `   • Vercel will auto-detect it's a Vite/React app\n\n` +
+                `4️⃣ **Deploy:**\n` +
+                `   • Click "Deploy"\n` +
+                `   • Your site will be live in minutes!\n\n` +
+                `✨ **Benefits:** You own your deployment, can customize domains, and have full control!`,
+                'system'
+              );
+            }}
+            disabled={!sandboxData || !generationProgress.files || generationProgress.files.length === 0}
+            size="sm"
+            title="Get instructions to deploy to your own Vercel account"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </Button>
           
