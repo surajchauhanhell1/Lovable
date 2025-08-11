@@ -1,6 +1,23 @@
-# E2B AI Code Editor
+# Open Lovable
 
-Chat with AI to build React apps instantly.
+Chat with AI to build React apps instantly with beautiful UI components.
+
+## 🎨 Open Lovable UI Agent
+
+**NEW**: This repository includes a specialized Claude Code agent that brings professional 3D effects, smooth animations, and premium styling to any React project.
+
+### Quick Start with UI Agent
+```
+Tell Claude Code: "Build with Open Lovable design system"
+```
+
+The agent automatically:
+- ✅ Uses premium UI components from this repository
+- ✅ Installs required dependencies  
+- ✅ Configures Tailwind with custom theme
+- ✅ Creates beautiful, professional interfaces
+
+📖 **[Learn more about the UI Agent →](claude-agent/README.md)**
 
 ## Setup
 
