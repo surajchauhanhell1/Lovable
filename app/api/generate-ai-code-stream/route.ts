@@ -165,7 +165,8 @@ export async function POST(request: NextRequest) {
           if (manifest && global.sandboxState?.fileCache?.files) {
             await sendProgress({ type: 'status', message: '🔍 Creating search plan...' });
             
-            const fileContents = global.sandboxState.fileCache.files;
+            const fileCacheSafe = global.sandboxState?.fileCache;
+            const fileContents = fileCacheSafe!.files;
             console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
             
             // STEP 1: Get search plan from AI
