@@ -53,6 +53,8 @@ export async function POST(req: NextRequest) {
       if (requestFiles && requestFiles.length > 0) {
         // Use files sent from frontend
         console.log('[deploy-vercel] Using files from request');
+        console.log('[deploy-vercel] First few files:', requestFiles.slice(0, 3));
+        
         for (const file of requestFiles) {
           // Validate file structure
           if (!file.path || !file.content) {
@@ -66,6 +68,8 @@ export async function POST(req: NextRequest) {
             console.log(`[deploy-vercel] Skipping file: ${file.path}`);
           }
         }
+        
+        console.log(`[deploy-vercel] Processed ${files.length} valid files from request`);
       } else {
         // Fallback: try to get files from global state (for development)
         console.log('[deploy-vercel] No files in request, checking global state...');
@@ -142,13 +146,11 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('[deploy-vercel] Deployment successful:', deployment.url);
-
+    // This code will work when you add a Vercel token and uncomment the deployment code
+    // For now, this will never be reached since deployment always returns an error
     return NextResponse.json({
-      success: true,
-      url: deployment.url,
-      deploymentId: deployment.id,
-      message: `Successfully deployed to ${deployment.url}`
+      success: false,
+      error: 'Deployment not implemented yet. Please add your Vercel token to enable deployment.'
     });
 
   } catch (error: any) {
@@ -335,11 +337,20 @@ async function deployToVercel(files: VercelFile[], projectName: string) {
     console.log('[deploy-vercel] Project name:', projectName);
     console.log('[deploy-vercel] Deployment payload size:', JSON.stringify(deploymentPayload).length, 'bytes');
 
+    // Note: Vercel requires authentication for deployments
+    // For now, we'll return an error explaining this
+    // In the future, users can add their Vercel token to deploy
+    return {
+      error: 'Vercel deployment requires authentication. Please add your Vercel token to deploy. For now, you can download your project as a ZIP file and deploy manually.'
+    };
+    
+    // Uncomment the code below when you have a Vercel token
+    /*
     const response = await fetch('https://api.vercel.com/v13/deployments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Using anonymous deployment - no auth token required
+        'Authorization': `Bearer ${process.env.VERCEL_TOKEN}`,
       },
       body: JSON.stringify(deploymentPayload)
     });
@@ -385,6 +396,7 @@ async function deployToVercel(files: VercelFile[], projectName: string) {
       url: deploymentUrl,
       id: deployment.id
     };
+    */
 
   } catch (error: any) {
     console.error('[deploy-vercel] Error calling Vercel API:', error);

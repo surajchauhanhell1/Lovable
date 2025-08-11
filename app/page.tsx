@@ -2032,7 +2032,16 @@ Tip: I automatically detect and install npm packages from your code imports (lik
           content: file.content
         }));
       
+      console.log(`[deploy] Total files: ${generationProgress.files.length}`);
+      console.log(`[deploy] Completed files: ${generationProgress.files.filter(f => f.completed).length}`);
+      console.log(`[deploy] Files for deployment:`, filesForDeployment);
       console.log(`[deploy] Sending ${filesForDeployment.length} files for deployment`);
+      
+      if (filesForDeployment.length === 0) {
+        addChatMessage('❌ **No completed files to deploy!**\n\nPlease wait for code generation to complete, then try deploying again.', 'system');
+        setLoading(false);
+        return;
+      }
       
       const response = await fetch('/api/deploy-to-vercel', {
         method: 'POST',
@@ -2068,13 +2077,30 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       }
     } catch (error: any) {
       log(`Deployment failed: ${error.message}`, 'error');
-      addChatMessage(
-        `❌ **Deployment Failed**\n\n` +
-        `Error: ${error.message}\n\n` +
-        `💡 **Try again:** The issue might be temporary\n` +
-        `🛠️ **Need help?** Make sure your project has valid React/HTML files`,
-        'system'
-      );
+      
+      // Check if it's the authentication error
+      if (error.message.includes('authentication') || error.message.includes('token')) {
+        addChatMessage(
+          `🔐 **Vercel Authentication Required**\n\n` +
+          `To deploy to Vercel, you need to:\n\n` +
+          `1️⃣ **Get your Vercel token:**\n` +
+          `   • Go to [vercel.com/account/tokens](https://vercel.com/account/tokens)\n` +
+          `   • Create a new token\n\n` +
+          `2️⃣ **Add it to your environment:**\n` +
+          `   • Add \`VERCEL_TOKEN=your_token_here\` to your \`.env.local\` file\n\n` +
+          `3️⃣ **Redeploy:** Click the deploy button again\n\n` +
+          `💡 **Alternative:** Download your project as ZIP and deploy manually!`,
+          'system'
+        );
+      } else {
+        addChatMessage(
+          `❌ **Deployment Failed**\n\n` +
+          `Error: ${error.message}\n\n` +
+          `💡 **Try again:** The issue might be temporary\n` +
+          `🛠️ **Need help?** Make sure your project has valid React/HTML files`,
+          'system'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -3177,7 +3203,7 @@ Focus on the key sections and content, making it clean and modern.`;
             disabled={!sandboxData || loading || !generationProgress.files || generationProgress.files.length === 0}
             size="sm"
             title={generationProgress.files && generationProgress.files.length > 0 
-              ? "Deploy your site to Vercel" 
+              ? "Deploy to Vercel (requires token)" 
               : "Generate some code first to deploy"
             }
           >
