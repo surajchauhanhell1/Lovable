@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,15 @@ import CodeApplicationProgress, { type CodeApplicationState } from '@/components
 import AnimatedCodeBackground from '@/components/AnimatedCodeBackground';
 // import DemoFlow from '@/components/DemoFlow';
 
+// Wrap page content with Suspense to satisfy useSearchParams requirement
+export default function AISandboxPage() {
+  return (
+    <Suspense fallback={null}>
+      <AISandboxPageContent />
+    </Suspense>
+  );
+}
+
 interface SandboxData {
   sandboxId: string;
   url: string;
@@ -43,7 +52,7 @@ interface ChatMessage {
   };
 }
 
-export default function AISandboxPage() {
+function AISandboxPageContent() {
   const [sandboxData, setSandboxData] = useState<SandboxData | null>(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ text: 'Not connected', active: false });
@@ -1650,8 +1659,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                               ...updatedState.files[existingFileIndex],
                               content: fileContent.trim(),
                               type: fileType,
-                              completed: true,
-                              edited: true
+                              completed: true
                             },
                             ...updatedState.files.slice(existingFileIndex + 1)
                           ];
@@ -1661,8 +1669,7 @@ Tip: I automatically detect and install npm packages from your code imports (lik
                             path: filePath,
                             content: fileContent.trim(),
                             type: fileType,
-                            completed: true,
-                            edited: false
+                            completed: true
                           }];
                         }
                         
@@ -2587,8 +2594,7 @@ Focus on the key sections and content, making it clean and modern.`;
                               ...updatedState.files[existingFileIndex],
                               content: fileContent.trim(),
                               type: fileType,
-                              completed: true,
-                              edited: true
+                              completed: true
                             },
                             ...updatedState.files.slice(existingFileIndex + 1)
                           ];
@@ -2598,8 +2604,7 @@ Focus on the key sections and content, making it clean and modern.`;
                             path: filePath,
                             content: fileContent.trim(),
                             type: fileType,
-                            completed: true,
-                            edited: false
+                            completed: true
                           }];
                         }
                         
