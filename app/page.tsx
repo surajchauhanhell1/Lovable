@@ -1950,6 +1950,63 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
+  const generateComponentLibrary = async () => {
+    if (!sandboxData) {
+      addChatMessage('No active sandbox available. Create a sandbox first!', 'system');
+      return;
+    }
+    
+    setLoading(true);
+    log('Generating component library...');
+    addChatMessage('🎨 Generating a complete component library for your project...', 'system');
+    
+    try {
+      const response = await fetch('/api/generate-component-library', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sandboxId: sandboxData.sandboxId,
+          designStyle: 'modern',
+          projectContext: 'React application with Tailwind CSS'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        log(`Component library generated! Created ${data.componentsGenerated} components`);
+        addChatMessage(
+          `✅ Component library generated successfully!\n\n` +
+          `📦 Created ${data.componentsGenerated} components:\n` +
+          `${data.results.filesCreated.join(', ')}\n\n` +
+          `💡 Components are available in your components/ui/ folder.\n` +
+          `Import them like: import { Button } from '@/components/ui/button'`,
+          'system'
+        );
+        
+        // Refresh the iframe to show the new components
+        if (iframeRef.current && sandboxData?.url) {
+          setTimeout(() => {
+            if (iframeRef.current) {
+              const urlWithTimestamp = `${sandboxData.url}?t=${Date.now()}`;
+              iframeRef.current.src = urlWithTimestamp;
+            }
+          }, 2000);
+        }
+        
+        // Structure will be updated automatically through file monitoring
+        
+      } else {
+        throw new Error(data.error || 'Failed to generate component library');
+      }
+    } catch (error: any) {
+      log(`Failed to generate component library: ${error.message}`, 'error');
+      addChatMessage(`❌ Failed to generate component library: ${error.message}`, 'system');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reapplyLastGeneration = async () => {
     if (!conversationContext.lastGeneratedCode) {
       addChatMessage('No previous generation to re-apply', 'system');
@@ -2790,7 +2847,15 @@ Focus on the key sections and content, making it clean and modern.`;
         
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-20 px-6 py-4 flex items-center justify-between animate-[fadeIn_0.8s_ease-out]">
-          <img src="/devs-dev.svg?v=3" alt="devs.dev" className="h-12 w-auto" />
+          <img 
+            src="/devs-dev.svg?v=3" 
+            alt="devs.dev" 
+            className="h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
+            onClick={() => {
+              setShowHomeScreen(true);
+              router.push('/');
+            }}
+          />
         </div>
         
         {/* Main content */}
@@ -2976,7 +3041,15 @@ Focus on the key sections and content, making it clean and modern.`;
       {!showHomeScreen && (
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src="/devs-dev.svg?v=3" alt="devs.dev" className="h-10 w-auto" />
+          <img 
+            src="/devs-dev.svg?v=3" 
+            alt="devs.dev" 
+            className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
+            onClick={() => {
+              setShowHomeScreen(true);
+              router.push('/');
+            }}
+          />
         </div>
         <div className="flex items-center gap-2">
           {/* Model Selector removed - model is forced in config */}
@@ -3010,6 +3083,17 @@ Focus on the key sections and content, making it clean and modern.`;
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+          </Button>
+          <Button 
+            variant="code"
+            onClick={generateComponentLibrary}
+            disabled={!sandboxData || loading}
+            size="sm"
+            title="Generate complete component library"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
           </Button>
           <div className="inline-flex items-center gap-2 bg-[#36322F] text-white px-3 py-1.5 rounded-[10px] text-sm font-medium [box-shadow:inset_0px_-2px_0px_0px_#171310,_0px_1px_6px_0px_rgba(58,_33,_8,_58%)]">
