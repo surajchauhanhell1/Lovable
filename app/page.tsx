@@ -76,6 +76,31 @@ function AISandboxPageContent() {
   const [urlStatus, setUrlStatus] = useState<string[]>([]);
   const [showHomeScreen, setShowHomeScreen] = useState<boolean>(true);
   const [isClient, setIsClient] = useState(false);
+  const [currentHelpText, setCurrentHelpText] = useState(0);
+
+  // Contextual help text suggestions that rotate in the chat input
+  const helpTextSuggestions = [
+    "change the hero text to something more compelling",
+    "add a video background to the hero section", 
+    "create a mega menu with dropdown categories",
+    "add a new page called 'about' or 'blog'",
+    "change the color scheme to a darker theme",
+    "add a contact form with validation",
+    "create a testimonials section with customer reviews",
+    "add an image gallery or portfolio section",
+    "implement a pricing table with different tiers",
+    "add social media icons to the footer",
+    "create a sticky navigation header",
+    "add animations and hover effects",
+    "implement a search functionality",
+    "add a FAQ section with expandable questions",
+    "create a newsletter signup form",
+    "add a progress bar or loading animations",
+    "implement dark mode toggle",
+    "add breadcrumb navigation",
+    "create a sidebar with additional content",
+    "add a back-to-top button"
+  ];
 
   // Handle client-side hydration for showHomeScreen state
   useEffect(() => {
@@ -95,6 +120,7 @@ function AISandboxPageContent() {
       window.sessionStorage.setItem('ui.showHomeScreen', value.toString());
     }
   };
+
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [homeScreenFading, setHomeScreenFading] = useState(false);
@@ -275,6 +301,15 @@ function AISandboxPageContent() {
     }
   }, [chatMessages]);
 
+  // Rotate help text every 4 seconds when sandbox is active
+  useEffect(() => {
+    if (sandboxData && conversationContext.appliedCode.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentHelpText(prev => (prev + 1) % helpTextSuggestions.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [sandboxData, conversationContext.appliedCode.length, helpTextSuggestions.length]);
 
   const updateStatus = (text: string, active: boolean) => {
     setStatus({ text, active });
@@ -2094,11 +2129,12 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         lastGeneratedCode: undefined
       });
 
-      // Clear URL inputs
+      // Clear URL inputs and reset help text
       setHomeUrlInput('');
       setHomeContextInput('');
       setUrlScreenshot(null);
       setScreenshotError(null);
+      setCurrentHelpText(0);
 
       // Add a small delay for better UX, then go to home screen
       setTimeout(() => {
@@ -3449,7 +3485,11 @@ Focus on the key sections and content, making it clean and modern.`;
             <div className="relative">
               <Textarea
                 className="min-h-[60px] pr-12 resize-y border-2 border-black focus:outline-none"
-                placeholder=""
+                placeholder={
+                  sandboxData && conversationContext.appliedCode.length > 0 
+                    ? `Try: "${helpTextSuggestions[currentHelpText]}"`
+                    : "Describe the website you want to create or paste a URL to clone..."
+                }
                 value={aiChatInput}
                 onChange={(e) => setAiChatInput(e.target.value)}
                 onKeyDown={(e) => {
