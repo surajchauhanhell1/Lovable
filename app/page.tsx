@@ -22,6 +22,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import CodeApplicationProgress, { type CodeApplicationState } from '@/components/CodeApplicationProgress';
 import AnimatedCodeBackground from '@/components/AnimatedCodeBackground';
+import { AISuggestions } from '@/components/AISuggestions';
+import { AISuggestion } from '@/types/suggestions';
+import { SuggestionGenerator } from '@/lib/suggestion-generator';
 // import DemoFlow from '@/components/DemoFlow';
 
 // Wrap page content with Suspense to satisfy useSearchParams requirement
@@ -96,6 +99,8 @@ function AISandboxPageContent() {
   const [loadingStage, setLoadingStage] = useState<'gathering' | 'planning' | 'generating' | null>(null);
   const [sandboxFiles, setSandboxFiles] = useState<Record<string, string>>({});
   const [fileStructure, setFileStructure] = useState<string>('');
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   const [conversationContext, setConversationContext] = useState<{
     scrapedWebsites: Array<{ url: string; content: any; timestamp: Date }>;
@@ -1875,6 +1880,31 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         thinkingDuration: undefined
       }));
       
+      // Generate AI suggestions after successful generation
+      if (generationProgress.files.length > 0 && conversationContext.scrapedWebsites.length > 0) {
+        try {
+          const generatedCode = {
+            files: generationProgress.files.map(f => ({ path: f.path, content: '' })),
+            components: generationProgress.files.filter(f => f.path.includes('components/')).map(f => f.path.split('/').pop() || '')
+          };
+          
+          const suggestions = SuggestionGenerator.generateSuggestions(
+            conversationContext.scrapedWebsites,
+            generatedCode,
+            6
+          );
+          
+          setAiSuggestions(suggestions);
+          setShowSuggestions(true);
+          
+          // Add a message about the suggestions
+          addChatMessage('💡 Here are some AI-powered suggestions to enhance your website!', 'system');
+        } catch (error) {
+          console.error('Failed to generate suggestions:', error);
+          // Don't fail the whole generation if suggestions fail
+        }
+      }
+      
       setTimeout(() => {
         // Switch to preview but keep files for display
         setActiveTab('preview');
@@ -2165,6 +2195,53 @@ Tip: I automatically detect and install npm packages from your code imports (lik
       type: 'system',
       timestamp: new Date()
     }]);
+    setAiSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handleSuggestionClick = (suggestion: AISuggestion) => {
+    // Set the suggestion prompt as the chat input
+    setAiChatInput(suggestion.prompt);
+    
+    // Add a message showing the suggestion was selected
+    addChatMessage(`Selected suggestion: ${suggestion.title}`, 'system');
+    
+    // Focus the chat input
+    setTimeout(() => {
+      const chatInput = document.querySelector('textarea[placeholder=""]') as HTMLTextAreaElement;
+      if (chatInput) {
+        chatInput.focus();
+        chatInput.setSelectionRange(chatInput.value.length, chatInput.value.length);
+      }
+    }, 100);
+  };
+
+  const regenerateSuggestions = () => {
+    if (conversationContext.scrapedWebsites.length > 0 && generationProgress.files.length > 0) {
+      try {
+        const generatedCode = {
+          files: generationProgress.files.map(f => ({ path: f.path, content: '' })),
+          components: generationProgress.files.filter(f => f.path.includes('components/')).map(f => f.path.split('/').pop() || '')
+        };
+        
+        const suggestions = SuggestionGenerator.generateSuggestions(
+          conversationContext.scrapedWebsites,
+          generatedCode,
+          6
+        );
+        
+        setAiSuggestions(suggestions);
+        addChatMessage('🔄 Generated fresh AI suggestions for your website!', 'system');
+      } catch (error) {
+        console.error('Failed to regenerate suggestions:', error);
+        addChatMessage('❌ Failed to regenerate suggestions. Please try again.', 'system');
+      }
+    }
+  };
+
+  const hideSuggestions = () => {
+    setShowSuggestions(false);
+    addChatMessage('Suggestions hidden. You can regenerate them anytime!', 'system');
   };
 
 
@@ -2877,6 +2954,31 @@ Focus on the key sections and content, making it clean and modern.`;
         setUrlStatus([]);
         setHomeContextInput('');
         
+        // Generate AI suggestions after successful generation
+        if (generationProgress.files.length > 0 && conversationContext.scrapedWebsites.length > 0) {
+          try {
+            const generatedCode = {
+              files: generationProgress.files.map(f => ({ path: f.path, content: '' })),
+              components: generationProgress.files.filter(f => f.path.includes('components/')).map(f => f.path.split('/').pop() || '')
+            };
+            
+            const suggestions = SuggestionGenerator.generateSuggestions(
+              conversationContext.scrapedWebsites,
+              generatedCode,
+              6
+            );
+            
+            setAiSuggestions(suggestions);
+            setShowSuggestions(true);
+            
+            // Add a message about the suggestions
+            addChatMessage('💡 Here are some AI-powered suggestions to enhance your website!', 'system');
+          } catch (error) {
+            console.error('Failed to generate suggestions:', error);
+            // Don't fail the whole generation if suggestions fail
+          }
+        }
+        
         // Clear generation progress and all screenshot/design states
         setGenerationProgress(prev => ({
           ...prev,
@@ -3489,9 +3591,33 @@ Focus on the key sections and content, making it clean and modern.`;
                 )}
               </div>
             )}
+            
+            {/* AI Suggestions */}
+            <AISuggestions
+              suggestions={aiSuggestions}
+              onSuggestionClick={handleSuggestionClick}
+              onRefresh={regenerateSuggestions}
+              onClose={hideSuggestions}
+              visible={showSuggestions}
+            />
           </div>
 
           <div className="p-4 border-t border-border bg-card">
+            {/* Show suggestions button when hidden */}
+            {!showSuggestions && aiSuggestions.length > 0 && (
+              <div className="mb-3 flex justify-center">
+                <button
+                  onClick={() => setShowSuggestions(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors text-sm font-medium"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Show AI Suggestions
+                </button>
+              </div>
+            )}
+            
             <div className="relative">
               <Textarea
                 className="min-h-[60px] pr-12 resize-y border-2 border-black focus:outline-none"
