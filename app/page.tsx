@@ -74,53 +74,11 @@ function AISandboxPageContent() {
   const [urlOverlayVisible, setUrlOverlayVisible] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [urlStatus, setUrlStatus] = useState<string[]>([]);
-  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(true);
-  const [isClient, setIsClient] = useState(false);
-  const [currentHelpText, setCurrentHelpText] = useState(0);
-
-  // Contextual help text suggestions that rotate in the chat input
-  const helpTextSuggestions = [
-    "change the hero text to something more compelling",
-    "add a video background to the hero section", 
-    "create a mega menu with dropdown categories",
-    "add a new page called 'about' or 'blog'",
-    "change the color scheme to a darker theme",
-    "add a contact form with validation",
-    "create a testimonials section with customer reviews",
-    "add an image gallery or portfolio section",
-    "implement a pricing table with different tiers",
-    "add social media icons to the footer",
-    "create a sticky navigation header",
-    "add animations and hover effects",
-    "implement a search functionality",
-    "add a FAQ section with expandable questions",
-    "create a newsletter signup form",
-    "add a progress bar or loading animations",
-    "implement dark mode toggle",
-    "add breadcrumb navigation",
-    "create a sidebar with additional content",
-    "add a back-to-top button"
-  ];
-
-  // Handle client-side hydration for showHomeScreen state
-  useEffect(() => {
-    setIsClient(true);
-    if (typeof window !== 'undefined') {
-      const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
-      if (persisted !== null) {
-        setShowHomeScreen(persisted === 'true');
-      }
-    }
-  }, []);
-
-  // Helper function to update showHomeScreen and persist to sessionStorage
-  const updateShowHomeScreen = (value: boolean) => {
-    setShowHomeScreen(value);
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem('ui.showHomeScreen', value.toString());
-    }
-  };
-
+  const [showHomeScreen, setShowHomeScreen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const persisted = window.sessionStorage.getItem('ui.showHomeScreen');
+    return persisted === null ? true : persisted === 'true';
+  });
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['app', 'src', 'src/components']));
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [homeScreenFading, setHomeScreenFading] = useState(false);
@@ -257,7 +215,7 @@ function AISandboxPageContent() {
       if (e.key === 'Escape' && showHomeScreen) {
         setHomeScreenFading(true);
         setTimeout(() => {
-          updateShowHomeScreen(false);
+          setShowHomeScreen(false);
           if (typeof window !== 'undefined') {
             window.sessionStorage.setItem('ui.showHomeScreen', 'false');
           }
@@ -301,15 +259,6 @@ function AISandboxPageContent() {
     }
   }, [chatMessages]);
 
-  // Rotate help text every 4 seconds when sandbox is active
-  useEffect(() => {
-    if (sandboxData && conversationContext.appliedCode.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentHelpText(prev => (prev + 1) % helpTextSuggestions.length);
-      }, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [sandboxData, conversationContext.appliedCode.length, helpTextSuggestions.length]);
 
   const updateStatus = (text: string, active: boolean) => {
     setStatus({ text, active });
@@ -2028,14 +1977,10 @@ Tip: I automatically detect and install npm packages from your code imports (lik
         log(`Component library generated! Created ${data.componentsGenerated} components`);
         addChatMessage(
           `✅ Component library generated successfully!\n\n` +
-          `📦 Created ${data.componentsGenerated} components with full showcase page\n\n` +
-          `🎨 **Visit /components in your sandbox** to see:\n` +
-          `• Live component previews\n` +
-          `• Copy-paste ready code\n` +
-          `• Usage examples\n` +
-          `• Interactive demos\n\n` +
-          `💡 Components: ${data.results.filesCreated.filter((f: string) => f.includes('components/ui')).join(', ')}\n\n` +
-          `🔗 Navigate to your sandbox and visit the /components page!`,
+          `📦 Created ${data.componentsGenerated} components:\n` +
+          `${data.results.filesCreated.join(', ')}\n\n` +
+          `💡 Components are available in your components/ui/ folder.\n` +
+          `Import them like: import { Button } from '@/components/ui/button'`,
           'system'
         );
         
@@ -2062,62 +2007,6 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     }
   };
 
-  const deployToVercel = async () => {
-    if (!sandboxData) {
-      addChatMessage('No active sandbox to deploy. Create a project first!', 'system');
-      return;
-    }
-    
-    setLoading(true);
-    log('Deploying to Vercel...');
-    addChatMessage('🚀 Deploying your site to Vercel... This may take 30-60 seconds.', 'system');
-    
-    try {
-      const response = await fetch('/api/deploy-to-vercel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sandboxId: sandboxData.sandboxId,
-          projectName: 'my-site-' + Date.now().toString().slice(-6) // Unique name
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        log(`Deployment successful! Live at: ${data.url}`);
-        addChatMessage(
-          `🎉 **Deployment Successful!**\n\n` +
-          `🌐 **Live URL:** ${data.url}\n\n` +
-          `✨ Your site is now live on the internet!\n` +
-          `📋 Copy the URL above to share with anyone\n` +
-          `🔄 Changes? Just redeploy anytime with this button\n\n` +
-          `💡 **Pro tip:** Bookmark this URL - it's yours forever!`,
-          'system'
-        );
-        
-        // Auto-open the deployed site in a new tab after a short delay
-        setTimeout(() => {
-          window.open(data.url, '_blank');
-        }, 1000);
-        
-      } else {
-        throw new Error(data.error || 'Deployment failed');
-      }
-    } catch (error: any) {
-      log(`Deployment failed: ${error.message}`, 'error');
-      addChatMessage(
-        `❌ **Deployment Failed**\n\n` +
-        `Error: ${error.message}\n\n` +
-        `💡 **Try again:** The issue might be temporary\n` +
-        `🛠️ **Need help?** Make sure your project has valid React/HTML files`,
-        'system'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const reapplyLastGeneration = async () => {
     if (!conversationContext.lastGeneratedCode) {
       addChatMessage('No previous generation to re-apply', 'system');
@@ -2132,81 +2021,6 @@ Tip: I automatically detect and install npm packages from your code imports (lik
     addChatMessage('Re-applying last generation...', 'system');
     const isEdit = conversationContext.appliedCode.length > 0;
     await applyGeneratedCode(conversationContext.lastGeneratedCode, isEdit);
-  };
-
-
-  // Complete reset function - clears sandbox and all state
-  const resetEverything = async () => {
-    try {
-      // Set loading state while resetting
-      setLoading(true);
-      setStatus({ text: 'Resetting...', active: true });
-
-      // Kill the current sandbox
-      await fetch('/api/kill-sandbox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      // Reset all state
-      setSandboxData(null);
-      setChatMessages([
-        {
-          content: 'Welcome! I can help you generate code with full context of your sandbox files and structure. Just start chatting - I\'ll automatically create a sandbox for you if needed!\n\nTip: If you see package errors like "react-router-dom not found", just type "npm install" or "check packages" to automatically install missing packages.',
-          type: 'system',
-          timestamp: new Date()
-        }
-      ]);
-      setLoading(false);
-      setStatus({ text: 'Not connected', active: false });
-      setStructureContent('No sandbox created yet');
-      setAiChatInput('');
-      setActiveTab('preview');
-      
-      // Reset generation progress
-      setGenerationProgress({
-        isGenerating: false,
-        status: '',
-        components: [],
-        currentComponent: 0,
-        streamedCode: '',
-        isStreaming: false,
-        isThinking: false,
-        files: [],
-        lastProcessedPosition: 0
-      });
-
-      // Reset conversation context
-      setConversationContext({
-        scrapedWebsites: [],
-        generatedComponents: [],
-        appliedCode: [],
-        currentProject: '',
-        lastGeneratedCode: undefined
-      });
-
-      // Clear URL inputs and reset help text
-      setHomeUrlInput('');
-      setHomeContextInput('');
-      setUrlScreenshot(null);
-      setScreenshotError(null);
-      setCurrentHelpText(0);
-
-      // Add a small delay for better UX, then go to home screen
-      setTimeout(() => {
-        updateShowHomeScreen(true);
-        setStatus({ text: 'Ready for new project', active: false });
-      }, 500);
-      
-      console.log('Successfully reset everything');
-    } catch (error) {
-      console.error('Error during reset:', error);
-      // Still go to home screen even if reset partially failed
-      setTimeout(() => {
-        updateShowHomeScreen(true);
-        setStatus({ text: 'Reset complete', active: false });
-      }, 500);
-    }
   };
 
   // Auto-scroll code display to bottom when streaming
@@ -2618,7 +2432,7 @@ Focus on the key sections and content, making it clean and modern while preservi
     if (!homeUrlInput.trim()) return;
     
     // Immediately switch off home screen to avoid flicker/remounts
-    updateShowHomeScreen(false);
+    setShowHomeScreen(false);
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem('ui.showHomeScreen', 'false');
     }
@@ -3001,16 +2815,6 @@ Focus on the key sections and content, making it clean and modern.`;
     }, 500);
   };
 
-  // Show a loading state during hydration to prevent mismatch
-  if (!isClient) {
-    return (
-      <div className="font-sans bg-background text-foreground h-screen flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="font-sans bg-background text-foreground h-screen flex flex-col">
       {/* Home Screen Overlay */}
@@ -3027,7 +2831,7 @@ Focus on the key sections and content, making it clean and modern.`;
           onClick={() => {
             setHomeScreenFading(true);
             setTimeout(() => {
-              updateShowHomeScreen(false);
+              setShowHomeScreen(false);
               setHomeScreenFading(false);
             }, 500);
           }}
@@ -3048,7 +2852,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-12 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              resetEverything();
+              setShowHomeScreen(true);
               router.push('/');
             }}
           />
@@ -3242,7 +3046,7 @@ Focus on the key sections and content, making it clean and modern.`;
             alt="devs.dev" 
             className="h-10 w-auto cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => {
-              resetEverything();
+              setShowHomeScreen(true);
               router.push('/');
             }}
           />
@@ -3290,18 +3094,6 @@ Focus on the key sections and content, making it clean and modern.`;
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </Button>
-          <Button 
-            variant="code"
-            onClick={deployToVercel}
-            disabled={!sandboxData || loading}
-            size="sm"
-            title="Deploy your site to Vercel (live on the internet)"
-            className={loading ? "animate-pulse" : ""}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </Button>
           <div className="inline-flex items-center gap-2 bg-[#36322F] text-white px-3 py-1.5 rounded-[10px] text-sm font-medium [box-shadow:inset_0px_-2px_0px_0px_#171310,_0px_1px_6px_0px_rgba(58,_33,_8,_58%)]">
@@ -3553,11 +3345,7 @@ Focus on the key sections and content, making it clean and modern.`;
             <div className="relative">
               <Textarea
                 className="min-h-[60px] pr-12 resize-y border-2 border-black focus:outline-none"
-                placeholder={
-                  sandboxData && conversationContext.appliedCode.length > 0 
-                    ? `Try: "${helpTextSuggestions[currentHelpText]}"`
-                    : "Describe the website you want to create or paste a URL to clone..."
-                }
+                placeholder=""
                 value={aiChatInput}
                 onChange={(e) => setAiChatInput(e.target.value)}
                 onKeyDown={(e) => {
