@@ -3027,8 +3027,18 @@ Focus on the key sections and content, making it clean and modern.`;
 
   return (
     <div className="font-sans bg-background text-foreground h-screen flex flex-col">
+      {/* Loading state while client initializes */}
+      {!isClient && (
+        <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      )}
+      
       {/* Home Screen Overlay */}
-      {showHomeScreen && (
+      {isClient && showHomeScreen && (
       <div className={`fixed inset-0 z-50 transition-opacity duration-500 ${homeScreenFading ? 'opacity-0' : 'opacity-100'} overflow-y-auto`}>
         {/* Animated code background */}
         <div className="absolute inset-0 bg-white overflow-hidden">
@@ -3248,7 +3258,7 @@ Focus on the key sections and content, making it clean and modern.`;
       </div>
       )}
       
-      {!showHomeScreen && (
+      {isClient && !showHomeScreen && (
       <div className="bg-card px-4 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-4">
           <img 

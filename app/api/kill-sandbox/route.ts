@@ -1,47 +1,22 @@
 import { NextResponse } from 'next/server';
-
-declare global {
-  var activeSandbox: any;
-  var sandboxData: any;
-  var existingFiles: Set<string>;
-}
+import SandboxManager from '@/lib/sandbox-manager';
 
 export async function POST() {
   try {
-    console.log('[kill-sandbox] Killing active sandbox...');
-    
-    let sandboxKilled = false;
-    
-    // Kill existing sandbox if any
-    if (global.activeSandbox) {
-      try {
-        await global.activeSandbox.close();
-        sandboxKilled = true;
-        console.log('[kill-sandbox] Sandbox closed successfully');
-      } catch (e) {
-        console.error('[kill-sandbox] Failed to close sandbox:', e);
-      }
-      global.activeSandbox = null;
-      global.sandboxData = null;
-    }
-    
-    // Clear existing files tracking
-    if (global.existingFiles) {
-      global.existingFiles.clear();
-    }
-    
+    const manager = SandboxManager.getInstance();
+    await manager.killSandbox();
+
     return NextResponse.json({
       success: true,
-      sandboxKilled,
+      sandboxKilled: true,
       message: 'Sandbox cleaned up successfully'
     });
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error('[kill-sandbox] Error:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: (error as Error).message 
+        error: error?.message || 'Failed to kill sandbox'
       }, 
       { status: 500 }
     );
