@@ -27,6 +27,8 @@ FIRECRAWL_API_KEY=your_firecrawl_api_key  # Get from https://firecrawl.dev (Web 
 ANTHROPIC_API_KEY=your_anthropic_api_key  # Get from https://console.anthropic.com
 OPENAI_API_KEY=your_openai_api_key  # Get from https://platform.openai.com (GPT-5)
 GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast inference - Kimi K2 recommended)
+GOOGLE_API_KEY=your_google_api_key # Get from https://aistudio.google.com/app/apikey (Gemini)
+OLLAMA_BASE_URL=http://localhost:11434 # For local models using Ollama
 ```
 
 3. **Run**
