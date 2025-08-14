@@ -6,6 +6,7 @@ import { appConfig } from '@/config/app.config';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import Script from 'next/script';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 // Import icons from centralized module to avoid Turbopack chunk issues
 import { 
@@ -3248,6 +3249,21 @@ Focus on the key sections and content, making it clean and modern.`;
             </form>
             <div className="mt-3 text-xs text-center text-zinc-600">
               This domain and site are for sale. If interested, email <a href="mailto:art@makerthrive.com" className="underline font-medium">art@makerthrive.com</a>.
+            </div>
+            <div className="mt-2 flex justify-center">
+              <Script
+                src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js"
+                data-name="bmc-button"
+                data-slug="nocodedevs"
+                data-color="#FFDD00"
+                data-emoji=""
+                data-font="Cookie"
+                data-text="Buy me a coffee"
+                data-outline-color="#000000"
+                data-font-color="#000000"
+                data-coffee-color="#ffffff"
+                strategy="afterInteractive"
+              />
             </div>
             
             {/** Demo disabled for now **/}
