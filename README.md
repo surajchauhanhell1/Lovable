@@ -1,7 +1,8 @@
 # Open Lovable
 
-**Instantly build React apps by chatting with AI.**
-Created by the [Firecrawl](https://firecrawl.dev/?ref=open-lovable-github) team.
+**Instantly build React apps by chatting with AI.**  
+Created by the [Firecrawl](https://firecrawl.dev/?ref=open-lovable-github) team.  
+For a complete cloud solution, check out [Lovable.dev ❤️](https://lovable.dev/).
 
 <p align="center">
   <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmZtaHFleGRsMTNlaWNydGdianI4NGQ4dHhyZjB0d2VkcjRyeXBucCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ZFVLWMa6dVskQX0qu1/giphy.gif" alt="Open Lovable Demo" width="100%" />
@@ -10,23 +11,21 @@ Created by the [Firecrawl](https://firecrawl.dev/?ref=open-lovable-github) team.
 ---
 
 ## 🚀 Features
-
-* **Natural Language to Code** – Describe what you want, get a working React app instantly.
-* **Multiple AI Providers** – OpenAI, Anthropic, Gemini, Groq, and more.
-* **Integrated Web Scraping** – Powered by Firecrawl for real-time data.
-* **Sandboxed Execution** – Safe, isolated environments via E2B.
+- **Natural Language to Code** – Describe what you want, get a working React app instantly.
+- **Multiple AI Providers** – OpenAI, Anthropic, Gemini, Groq, and more.
+- **Integrated Web Scraping** – Powered by Firecrawl for real-time data.
+- **Sandboxed Execution** – Safe, isolated environments via E2B.
 
 ---
 
 ## 🛠 Setup
 
 ### 1️⃣ Clone & Install
-
 ```bash
 git clone https://github.com/mendableai/open-lovable.git
 cd open-lovable
 npm install
-```
+````
 
 ### 2️⃣ Configure Environment
 
@@ -60,4 +59,3 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 MIT – See the [LICENSE](LICENSE) file for details.
 
----
