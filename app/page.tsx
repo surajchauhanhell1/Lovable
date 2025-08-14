@@ -3246,6 +3246,9 @@ Focus on the key sections and content, making it clean and modern.`;
                   </div>
                 )}
             </form>
+            <div className="mt-3 text-xs text-center text-zinc-600">
+              This domain and site are for sale. If interested, email <a href="mailto:art@makerthrive.com" className="underline font-medium">art@makerthrive.com</a>.
+            </div>
             
             {/** Demo disabled for now **/}
             {/*
