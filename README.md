@@ -1,38 +1,63 @@
 # Open Lovable
 
-Chat with AI to build React apps instantly. Made by the [Firecrawl](https://firecrawl.dev/?ref=open-lovable-github) team.
+**Instantly build React apps by chatting with AI.**
+Created by the [Firecrawl](https://firecrawl.dev/?ref=open-lovable-github) team.
 
-<img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmZtaHFleGRsMTNlaWNydGdianI4NGQ4dHhyZjB0d2VkcjRyeXBucCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ZFVLWMa6dVskQX0qu1/giphy.gif" alt="Open Lovable Demo" width="100%"/>
+<p align="center">
+  <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbmZtaHFleGRsMTNlaWNydGdianI4NGQ4dHhyZjB0d2VkcjRyeXBucCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ZFVLWMa6dVskQX0qu1/giphy.gif" alt="Open Lovable Demo" width="100%" />
+</p>
 
-## Setup
+---
 
-1. **Clone & Install**
+## 🚀 Features
+
+* **Natural Language to Code** – Describe what you want, get a working React app instantly.
+* **Multiple AI Providers** – OpenAI, Anthropic, Gemini, Groq, and more.
+* **Integrated Web Scraping** – Powered by Firecrawl for real-time data.
+* **Sandboxed Execution** – Safe, isolated environments via E2B.
+
+---
+
+## 🛠 Setup
+
+### 1️⃣ Clone & Install
+
 ```bash
 git clone https://github.com/mendableai/open-lovable.git
 cd open-lovable
 npm install
 ```
 
-2. **Add `.env.local`**
+### 2️⃣ Configure Environment
+
+Create a `.env.local` file in the root directory:
+
 ```env
 # Required
-E2B_API_KEY=your_e2b_api_key  # Get from https://e2b.dev (Sandboxes)
-FIRECRAWL_API_KEY=your_firecrawl_api_key  # Get from https://firecrawl.dev (Web scraping)
+E2B_API_KEY=your_e2b_api_key                # https://e2b.dev (Sandboxes)
+FIRECRAWL_API_KEY=your_firecrawl_api_key    # https://firecrawl.dev (Web scraping)
 
-# Optional (need at least one AI provider)
-ANTHROPIC_API_KEY=your_anthropic_api_key  # Get from https://console.anthropic.com
-OPENAI_API_KEY=your_openai_api_key  # Get from https://platform.openai.com (GPT-5)
-GEMINI_API_KEY=your_gemini_api_key  # Get from https://aistudio.google.com/app/apikey
-GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast inference - Kimi K2 recommended)
+# Optional – at least one AI provider required
+OPENAI_API_KEY=your_openai_api_key          # https://platform.openai.com (GPT-5)
+ANTHROPIC_API_KEY=your_anthropic_api_key    # https://console.anthropic.com
+GEMINI_API_KEY=your_gemini_api_key          # https://aistudio.google.com/app/apikey
+GROQ_API_KEY=your_groq_api_key              # https://console.groq.com (Fast inference - Kimi K2 recommended)
 ```
 
-3. **Run**
+> 💡 You only need **one AI provider** to get started.
+
+### 3️⃣ Run the App
+
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)  
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## License
+---
 
-MIT
+## 📜 License
+
+MIT – See the [LICENSE](LICENSE) file for details.
+
+---
