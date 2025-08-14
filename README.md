@@ -33,16 +33,20 @@ GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast infere
 npm run dev
 ```
 
+---
+
 ## Windows Setup Notes 🪟
 
 If you’re on Windows and see an error like:
 
+```
 Error: Cannot find module '../lightningcss.win32-x64-msvc.node'
-
+```
 
 This happens because the LightningCSS binary for Windows may not install correctly.
 
-**Fix:**
+**How to Fix:**
+
 ```powershell
 # PowerShell
 Remove-Item -Recurse -Force node_modules
@@ -51,10 +55,17 @@ npm cache clean --force
 npm install lightningcss@latest --platform=win32 --arch=x64
 npm install
 npm rebuild lightningcss --force
+```
 
-After running these, try npm run dev again.
+After running these, try:
 
-Open [http://localhost:3000](http://localhost:3000)  
+```bash
+npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000)
+
+---
 
 ## License
 
