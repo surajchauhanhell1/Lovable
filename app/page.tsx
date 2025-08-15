@@ -13,7 +13,7 @@ import {
   FiChevronRight, 
   FiChevronDown,
   BsFolderFill, 
-  BsFolder2Open,
+  BsFolder2Open, 
   SiJavascript, 
   SiReact, 
   SiCss3, 
@@ -3099,153 +3099,29 @@ Focus on the key sections and content, making it clean and modern.`;
               </motion.p>
             </div>
             
-            <form onSubmit={handleHomeScreenSubmit} className="mt-5 w-full mx-auto">
-              <div className="w-full relative group">
-                <input
-                  type="text"
-                  value={homeUrlInput}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setHomeUrlInput(value);
-                    
-                    // Check if it's a valid domain
-                    const domainRegex = /^(https?:\/\/)?(([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})(\/?.*)?$/;
-                    if (domainRegex.test(value) && value.length > 5) {
-                      // Small delay to make the animation feel smoother
-                      setTimeout(() => setShowStyleSelector(true), 100);
-                    } else {
-                      setShowStyleSelector(false);
-                      setSelectedStyle(null);
-                    }
-                  }}
-                  placeholder=" "
-                  aria-placeholder="https://example.com"
-                  className="h-[3.25rem] w-full resize-none focus-visible:outline-none focus-visible:ring-orange-500 focus-visible:ring-2 rounded-[18px] text-sm text-[#36322F] px-4 pr-12 border-[.75px] border-border bg-white"
-                  style={{
-                    boxShadow: '0 0 0 1px #e3e1de66, 0 1px 2px #5f4a2e14, 0 4px 6px #5f4a2e0a, 0 40px 40px -24px #684b2514',
-                    filter: 'drop-shadow(rgba(249, 224, 184, 0.3) -0.731317px -0.731317px 35.6517px)'
-                  }}
-                  autoFocus
-                />
-                <div 
-                  aria-hidden="true" 
-                  className={`absolute top-1/2 -translate-y-1/2 left-4 pointer-events-none text-sm text-opacity-50 text-start transition-opacity ${
-                    homeUrlInput ? 'opacity-0' : 'opacity-100'
-                  }`}
-                >
-                  <span className="text-[#605A57]/50" style={{ fontFamily: 'monospace' }}>
-                    https://example.com
-                  </span>
+            <div className="mt-8 w-full mx-auto">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 shadow-sm">
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                    <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                    Service Temporarily Unavailable
+                  </h3>
+                  <p className="text-yellow-700 text-sm leading-relaxed max-w-md mx-auto">
+                    Due to high API costs and heavy usage, our website cloning service is temporarily suspended. 
+                    We're working on optimizing costs and will resume service soon.
+                  </p>
+                  <p className="text-yellow-600 text-xs mt-3">
+                    Thank you for your patience and understanding.
+                  </p>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!homeUrlInput.trim()}
-                  className="absolute top-1/2 transform -translate-y-1/2 right-2 flex h-10 items-center justify-center rounded-md px-3 text-sm font-medium text-zinc-500 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title={selectedStyle ? `Clone with ${selectedStyle} Style` : 'Clone Website'}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                    <polyline points="9 10 4 15 9 20"></polyline>
-                    <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-                  </svg>
-                </button>
               </div>
-                
-                {/* Style Selector - Slides out when valid domain is entered */}
-                {showStyleSelector && (
-                  <div className="overflow-hidden mt-4">
-                    <div className={`transition-all duration-500 ease-out transform ${
-                      showStyleSelector ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
-                    }`}>
-                  <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p className="text-sm text-gray-600 mb-3 font-medium">How do you want your site to look?</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {[
-                        { name: 'Neobrutalist', description: 'Bold colors, thick borders' },
-                        { name: 'Glassmorphism', description: 'Frosted glass effects' },
-                        { name: 'Minimalist', description: 'Clean and simple' },
-                        { name: 'Dark Mode', description: 'Dark theme' },
-                        { name: 'Gradient', description: 'Colorful gradients' },
-                        { name: 'Retro', description: '80s/90s aesthetic' },
-                        { name: 'Modern', description: 'Contemporary design' },
-                        { name: 'Monochrome', description: 'Black and white' }
-                      ].map((style) => (
-                        <button
-                          key={style.name}
-                          type="button"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              // Submit the form
-                              const form = e.currentTarget.closest('form');
-                              if (form) {
-                                form.requestSubmit();
-                              }
-                            }
-                          }}
-                          onClick={() => {
-                            if (selectedStyle === style.name) {
-                              // Deselect if clicking the same style
-                              setSelectedStyle(null);
-                              // Keep only additional context, remove the style theme part
-                              const currentAdditional = homeContextInput.replace(/^[^,]+theme\s*,?\s*/, '').trim();
-                              setHomeContextInput(currentAdditional);
-                            } else {
-                              // Select new style
-                              setSelectedStyle(style.name);
-                              // Extract any additional context (everything after the style theme)
-                              const currentAdditional = homeContextInput.replace(/^[^,]+theme\s*,?\s*/, '').trim();
-                              setHomeContextInput(style.name.toLowerCase() + ' theme' + (currentAdditional ? ', ' + currentAdditional : ''));
-                            }
-                          }}
-                          className={`p-3 rounded-lg border transition-all ${
-                            selectedStyle === style.name
-                              ? 'border-orange-400 bg-orange-50 text-gray-900 shadow-sm'
-                              : 'border-gray-200 bg-white hover:border-orange-200 hover:bg-orange-50/50 text-gray-700'
-                          }`}
-                        >
-                          <div className="text-sm font-medium">{style.name}</div>
-                          <div className="text-xs text-gray-500 mt-1">{style.description}</div>
-                        </button>
-                      ))}
-                    </div>
-                    
-                    {/* Additional context input - part of the style selector */}
-                    <div className="mt-4 mb-2">
-                      <input
-                        type="text"
-                        value={(() => {
-                          if (!selectedStyle) return homeContextInput;
-                          // Extract additional context by removing the style theme part
-                          const additional = homeContextInput.replace(new RegExp('^' + selectedStyle.toLowerCase() + ' theme\\s*,?\\s*', 'i'), '');
-                          return additional;
-                        })()}
-                        onChange={(e) => {
-                          const additionalContext = e.target.value;
-                          if (selectedStyle) {
-                            setHomeContextInput(selectedStyle.toLowerCase() + ' theme' + (additionalContext.trim() ? ', ' + additionalContext : ''));
-                          } else {
-                            setHomeContextInput(additionalContext);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const form = e.currentTarget.closest('form');
-                            if (form) {
-                              form.requestSubmit();
-                            }
-                          }
-                        }}
-                        placeholder="Add more details: specific features, color preferences..."
-                        className="w-full px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100 transition-all duration-200"
-                      />
-                    </div>
-                  </div>
-                    </div>
-                  </div>
-                )}
-            </form>
+            </div>
+
+
             <div className="mt-3 text-xs text-center text-zinc-600">
               This domain and site are for sale. If interested, email <a href="mailto:art@makerthrive.com" className="underline font-medium">art@makerthrive.com</a>.
             </div>
