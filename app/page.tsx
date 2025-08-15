@@ -3117,6 +3117,14 @@ Focus on the key sections and content, making it clean and modern.`;
                   <p className="text-yellow-600 text-xs mt-3">
                     Thank you for your patience and understanding.
                   </p>
+                  <div className="mt-4 pt-4 border-t border-yellow-200">
+                    <p className="text-yellow-700 text-sm">
+                      Want your own version of this site? We offer white-label boilerplates with custom domain and branding.
+                    </p>
+                    <p className="text-yellow-600 text-xs mt-2">
+                      Email <a href="mailto:art@makerthrive.com" className="underline font-medium">art@makerthrive.com</a> for details.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
