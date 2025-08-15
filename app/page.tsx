@@ -3108,7 +3108,7 @@ Focus on the key sections and content, making it clean and modern.`;
                     </svg>
                   </div>
                   <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                    Service Temporarily Unavailable
+                    FREE Service Temporarily Unavailable
                   </h3>
                   <p className="text-yellow-700 text-sm leading-relaxed max-w-md mx-auto">
                     Due to high API costs and heavy usage, our website cloning service is temporarily suspended. 
