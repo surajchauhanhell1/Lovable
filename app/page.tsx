@@ -228,6 +228,11 @@ export default function AISandboxPage() {
       setSession(session)
       if (session?.user) {
         getSubscription(session.user.id).then(setSubscription);
+        getConversation(session.user.id).then((conversation) => {
+          if (conversation) {
+            setChatMessages(conversation.messages);
+          }
+        });
       }
     })
 
@@ -237,8 +242,14 @@ export default function AISandboxPage() {
       setSession(session)
       if (session?.user) {
         getSubscription(session.user.id).then(setSubscription);
+        getConversation(session.user.id).then((conversation) => {
+          if (conversation) {
+            setChatMessages(conversation.messages);
+          }
+        });
       } else {
         setSubscription(null);
+        setChatMessages([]);
       }
     })
 
