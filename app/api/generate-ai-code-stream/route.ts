@@ -3,6 +3,7 @@ import { createGroq } from '@ai-sdk/groq';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOllama } from 'ollama-ai-provider';
 import { streamText } from 'ai';
 import type { SandboxState } from '@/types/sandbox';
 import { selectFilesForEdit, getFileContents, formatFilesForAI } from '@/lib/context-selector';
@@ -26,6 +27,10 @@ const googleGenerativeAI = createGoogleGenerativeAI({
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+const ollama = createOllama({
+  baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/api',
 });
 
 // Helper function to analyze user preferences from conversation history
@@ -1155,10 +1160,25 @@ CRITICAL: When files are provided in the context:
         const isAnthropic = model.startsWith('anthropic/');
         const isGoogle = model.startsWith('google/');
         const isOpenAI = model.startsWith('openai/gpt-5');
-        const modelProvider = isAnthropic ? anthropic : (isOpenAI ? openai : (isGoogle ? googleGenerativeAI : groq));
-        const actualModel = isAnthropic ? model.replace('anthropic/', '') : 
-                           (model === 'openai/gpt-5') ? 'gpt-5' :
-                           (isGoogle ? model.replace('google/', '') : model);
+        const isOllama = model.startsWith('ollama/');
+        const modelProvider = isAnthropic
+          ? anthropic
+          : isOpenAI
+          ? openai
+          : isGoogle
+          ? googleGenerativeAI
+          : isOllama
+          ? ollama
+          : groq;
+        const actualModel = isAnthropic
+          ? model.replace('anthropic/', '')
+          : model === 'openai/gpt-5'
+          ? 'gpt-5'
+          : isGoogle
+          ? model.replace('google/', '')
+          : isOllama
+          ? model.replace('ollama/', '')
+          : model;
 
         // Make streaming API call with appropriate provider
         const streamOptions: any = {
