@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { Suspense } from "react"; // <-- add this
+import DiagnosticsPanel from '@/components/DiagnosticsPanel';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -17,6 +18,7 @@ export default function RootLayout({
         <Suspense fallback={null}>   {/* <-- wrap children */}
           {children}
         </Suspense>
+        <DiagnosticsPanel />
       </body>
     </html>
   );
