@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const { data: newCommit } = await octokit.git.createCommit({
       owner,
       repo: repoName,
-      message: "Initial commit from Open Lovable",
+      message: "Initial commit from Sokarr.ai",
       tree: newTree.sha,
     });
 

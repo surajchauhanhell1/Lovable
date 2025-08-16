@@ -55,7 +55,7 @@ export async function POST(request: Request) {
           name: user.email!,
         },
         customizations: {
-          title: "Open Lovable Subscription",
+          title: "Sokarr.ai Subscription",
           description: `Payment for ${plan} plan`,
         },
         meta: {
