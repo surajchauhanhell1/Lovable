@@ -29,7 +29,7 @@ export interface ChatMessage {
  * `gpt-4o-mini` if no override is provided.
  */
 export function getDefaultModel(): string {
-  return process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  return process.env.OPENAI_MODEL || 'gpt-5';
 }
 
 /**
