@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isValidUrl } from '@/lib/utils';
 
 // Function to sanitize smart quotes and other problematic characters
 function sanitizeQuotes(text: string): string {
@@ -20,10 +21,10 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
     
-    if (!url) {
+    if (!url || !isValidUrl(url)) {
       return NextResponse.json({
         success: false,
-        error: 'URL is required'
+        error: 'A valid URL is required'
       }, { status: 400 });
     }
     
