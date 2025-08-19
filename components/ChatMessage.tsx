@@ -193,7 +193,7 @@ export default function ChatMessage({
           <>
             {content.substring(0, 500)}...
             <Button
-              variant="link"
+              variant="ghost"
               size="sm"
               onClick={() => setShowFullCode(true)}
               className="p-0 h-auto text-blue-600 hover:text-blue-800"
@@ -206,7 +206,7 @@ export default function ChatMessage({
             {content}
             {isLongMessage && showFullCode && (
               <Button
-                variant="link"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowFullCode(false)}
                 className="p-0 h-auto text-blue-600 hover:text-blue-800 ml-2"

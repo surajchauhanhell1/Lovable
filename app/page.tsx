@@ -43,7 +43,7 @@ interface ChatMessage {
 
 interface SandboxStatus {
   id?: string;
-  status: 'idle' | 'creating' | 'running' | 'error';
+  status: 'idle' | 'creating' | 'running' | 'error' | 'stopped';
   url?: string;
   files?: any[];
   createdAt?: Date;
@@ -312,7 +312,7 @@ export default function Page() {
         body: JSON.stringify({ sandboxId: sandboxStatus.id })
       });
       
-      setSandboxStatus({ status: 'stopped' });
+      setSandboxStatus(prev => ({ ...prev, status: 'stopped' }));
     } catch (error) {
       console.error('Failed to stop sandbox:', error);
     }
@@ -439,17 +439,16 @@ export default function Page() {
                   AI Chat
                 </h3>
                 <div className="flex items-center space-x-2">
-                  <Select value={selectedModel} onValueChange={setSelectedModel}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="groq/kimi-2-8b">Kimi 2 (Fast)</SelectItem>
-                      <SelectItem value="anthropic/claude-3-5-sonnet">Claude 3.5</SelectItem>
-                      <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
-                      <SelectItem value="google/gemini-1.5-pro">Gemini 1.5</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="w-40 px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="groq/kimi-2-8b">Kimi 2 (Fast)</option>
+                    <option value="anthropic/claude-3-5-sonnet">Claude 3.5</option>
+                    <option value="openai/gpt-5">GPT-5</option>
+                    <option value="google/gemini-1.5-pro">Gemini 1.5</option>
+                  </select>
                 </div>
               </div>
 
@@ -513,17 +512,16 @@ export default function Page() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium">AI Model</Label>
-                      <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="groq/kimi-2-8b">Kimi 2 (Fast)</SelectItem>
-                          <SelectItem value="anthropic/claude-3-5-sonnet">Claude 3.5</SelectItem>
-                          <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
-                          <SelectItem value="google/gemini-1.5-pro">Gemini 1.5</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="groq/kimi-2-8b">Kimi 2 (Fast)</option>
+                        <option value="anthropic/claude-3-5-sonnet">Claude 3.5</option>
+                        <option value="openai/gpt-5">GPT-5</option>
+                        <option value="google/gemini-1.5-pro">Gemini 1.5</option>
+                      </select>
                     </div>
                     
                     <div>
@@ -531,7 +529,8 @@ export default function Page() {
                       <div className="flex items-center space-x-2 mt-1">
                         <div className={`w-2 h-2 rounded-full ${
                           sandboxStatus.status === 'running' ? 'bg-green-500' : 
-                          sandboxStatus.status === 'creating' ? 'bg-yellow-500' : 'bg-gray-400'
+                          sandboxStatus.status === 'creating' ? 'bg-yellow-500' : 
+                          sandboxStatus.status === 'stopped' ? 'bg-gray-400' : 'bg-gray-400'
                         }`} />
                         <span className="text-sm text-gray-600 capitalize">{sandboxStatus.status}</span>
                       </div>
