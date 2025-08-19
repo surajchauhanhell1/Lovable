@@ -1,3 +1,5 @@
+'use client';
+
 export default function Page() {
   return (
     <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'system-ui, sans-serif' }}>
