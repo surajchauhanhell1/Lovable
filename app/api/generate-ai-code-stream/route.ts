@@ -976,7 +976,13 @@ CRITICAL: When files are provided in the context:
                   }
                   
                   if (filesData.manifest) {
-                    globalThis.sandboxState.fileCache.manifest = filesData.manifest;
+                    // guard in case fileCache is undefined/null
+                    if (!globalThis.sandboxState) {
+                      (globalThis as any).sandboxState = { fileCache: { files: {}, lastSync: Date.now(), sandboxId: context?.sandboxId || 'unknown' } } as any;
+                    } else if (!globalThis.sandboxState.fileCache) {
+                      (globalThis.sandboxState as any).fileCache = { files: {}, lastSync: Date.now(), sandboxId: context?.sandboxId || 'unknown' } as any;
+                    }
+                    (globalThis.sandboxState as any).fileCache.manifest = filesData.manifest;
                     
                     // Now try to analyze edit intent with the fetched manifest
                     if (!editContext) {
