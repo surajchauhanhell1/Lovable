@@ -1,6 +1,7 @@
 name = "open-lovable"
 compatibility_date = "2025-01-30"
 pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # Public URL and provider keys (set actual values in Cloudflare Pages UI for security)
