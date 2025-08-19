@@ -1,5 +1,6 @@
 name = "open-lovable"
 compatibility_date = "2025-01-30"
+pages_build_output_dir = ".vercel/output/static"
 
 [vars]
 # Public URL and provider keys (set actual values in Cloudflare Pages UI for security)
@@ -10,4 +11,3 @@ compatibility_date = "2025-01-30"
 # ANTHROPIC_API_KEY = ""
 # GEMINI_API_KEY = ""
 # GROQ_API_KEY = ""
-
