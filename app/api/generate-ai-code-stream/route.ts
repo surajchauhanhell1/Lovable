@@ -954,10 +954,22 @@ CRITICAL: When files are provided in the context:
                     };
                   }
                   
-                  // Store files in cache
+                  // Ensure fileCache exists and store files in cache
+                  let fileCache = globalThis.sandboxState?.fileCache;
+                  if (!fileCache) {
+                    if (!globalThis.sandboxState) {
+                      (globalThis as any).sandboxState = {} as any;
+                    }
+                    (globalThis.sandboxState as any).fileCache = {
+                      files: {},
+                      lastSync: Date.now(),
+                      sandboxId: context?.sandboxId || 'unknown'
+                    } as any;
+                    fileCache = globalThis.sandboxState.fileCache;
+                  }
                   for (const [path, content] of Object.entries(filesData.files)) {
                     const normalizedPath = path.replace('/home/user/app/', '');
-                    globalThis.sandboxState.fileCache.files[normalizedPath] = {
+                    (fileCache as any).files[normalizedPath] = {
                       content: content as string,
                       lastModified: Date.now()
                     };
