@@ -11,7 +11,7 @@ RUN npm install --frozen-lockfile
 COPY . .
 
 # Build Next.js app
-RUN npm build
+RUN npm run build
 
 # Production image
 FROM node:20-alpine AS runner
