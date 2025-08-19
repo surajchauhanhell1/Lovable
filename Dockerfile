@@ -31,5 +31,9 @@ RUN npm prune --omit=dev
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 EXPOSE 80
+# 赋予 node 可绑定低端口的能力而无需 root
+RUN apt-get update && apt-get install -y --no-install-recommends libcap2-bin \
+  && setcap 'cap_net_bind_service=+ep' /usr/local/bin/node \
+  && rm -rf /var/lib/apt/lists/*
 USER node
 CMD ["npm","run","start","--","-p","80"]
