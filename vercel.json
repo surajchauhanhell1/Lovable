@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build:cf",
+  "outputDirectory": ".vercel/output/static",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "edge"
+    }
+  }
+}

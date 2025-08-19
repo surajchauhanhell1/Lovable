@@ -12,7 +12,7 @@
     "prebuild:cf": "node ./scripts/set-cf-compat-flags.mjs || true",
     "build:cf": "npm run build && npx @cloudflare/next-on-pages@latest",
     "preview:cf": "wrangler pages dev .vercel/output/static --compatibility-date=2024-01-15",
-    "set:cf-flags": "node ./scripts/set-cv-compat-flags.mjs",
+    "set:cf-flags": "node ./scripts/set-cf-compat-flags.mjs",
     "deploy:cf": "npm run build:cf && wrangler pages deploy .vercel/output/static",
     "deploy:pages": "npm run build:cf",
     "test:integration": "node tests/e2b-integration.test.js",
