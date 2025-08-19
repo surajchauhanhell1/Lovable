@@ -1,0 +1,7 @@
+name = "open-lovable"
+compatibility_date = "2025-01-30"
+
+[vars]
+# Expose public URL if needed by server code
+# NEXT_PUBLIC_APP_URL = "https://<your-pages-domain>"
+
