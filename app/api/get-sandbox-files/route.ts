@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { parseJavaScriptFile, buildComponentTree } from '@/lib/file-parser';
 import { FileManifest, FileInfo, RouteInfo } from '@/types/file-manifest';
-import type { SandboxState } from '@/types/sandbox';
+// import type { SandboxState } from '@/types/sandbox';
 
 export const runtime = 'edge';
 
@@ -156,7 +156,7 @@ function extractRoutes(files: Record<string, FileInfo>): RouteInfo[] {
   for (const [path, fileInfo] of Object.entries(files)) {
     if (fileInfo.content.includes('<Route') || fileInfo.content.includes('createBrowserRouter')) {
       // Extract route definitions (simplified)
-      const routeMatches = fileInfo.content.matchAll(/path=["']([^"']+)["'].*(?:element|component)={([^}]+)}/g);
+      const routeMatches = fileInfo.content.matchAll(/path=["']([^"']+)["'].*(?:element|component)={[^}]+}/g);
       
       for (const match of routeMatches) {
         const [, routePath, componentRef] = match;

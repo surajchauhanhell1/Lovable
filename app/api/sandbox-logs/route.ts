@@ -6,7 +6,7 @@ declare global {
   var activeSandbox: any;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_: NextRequest) {
   try {
     if (!globalThis.activeSandbox) {
       return NextResponse.json({ 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Sandbox } from '@e2b/code-interpreter';
+// import { Sandbox } from '@e2b/code-interpreter';
 
 export const runtime = 'edge';
 
