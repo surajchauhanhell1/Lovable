@@ -99,14 +99,50 @@ Try these pre-built examples to see what's possible:
 
 ### Cloudflare Pages (Recommended)
 
-1. Set environment variables in Pages project settings
-2. Build command: `npx @cloudflare/next-on-pages`
-3. Output directory: `.vercel/output/static`
+1. **Build for Cloudflare:**
+   ```bash
+   npm run build:cf
+   ```
+
+2. **Deploy to Cloudflare Pages:**
+   - Go to [Cloudflare Pages Dashboard](https://dash.cloudflare.com/pages)
+   - Click "Create a project"
+   - Connect to GitHub repository: `ai-hub-2/open-lovable`
+   - Set build settings:
+     - **Build command**: `npm run build:cf`
+     - **Build output directory**: `.vercel/output/static`
+     - **Node.js version**: `18` or `20`
+
+3. **Environment Variables** (set in Cloudflare Pages UI):
+   ```
+   E2B_API_KEY=your_actual_key
+   FIRECRAWL_API_KEY=your_actual_key
+   OPENAI_API_KEY=your_actual_key
+   ANTHROPIC_API_KEY=your_actual_key
+   GEMINI_API_KEY=your_actual_key
+   GROQ_API_KEY=your_actual_key
+   NEXT_PUBLIC_APP_URL=https://your-domain.pages.dev
+   ENABLE_APPLY_AI_CODE_STREAM=true
+   ENABLE_DETECT_INSTALL=true
+   ```
+
+### Alternative: Wrangler CLI
+
+```bash
+# Install wrangler globally
+npm install -g wrangler
+
+# Login to Cloudflare
+wrangler login
+
+# Deploy
+npm run deploy:cf
+```
 
 ### Local Preview
 ```bash
 npm run build:cf
-npx wrangler pages dev .vercel/output/static --compatibility-date=2025-01-30
+npm run preview:cf
 ```
 
 ## 🛠️ Development
