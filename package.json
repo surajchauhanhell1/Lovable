@@ -15,6 +15,7 @@
     "set:cf-flags": "node ./scripts/set-cf-compat-flags.mjs",
     "deploy:cf": "npm run build:cf && wrangler pages deploy .vercel/output/static",
     "deploy:pages": "npm run build:cf",
+    "build:test": "npm run build && npx @cloudflare/next-on-pages@latest --dry-run",
     "test:integration": "node tests/e2b-integration.test.js",
     "test:api": "node tests/api-endpoints.test.js",
     "test:code": "node tests/code-execution.test.js",

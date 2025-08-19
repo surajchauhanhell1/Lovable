@@ -111,7 +111,7 @@ Try these pre-built examples to see what's possible:
    - Set build settings:
      - **Build command**: `npm run build:cf`
      - **Build output directory**: `.vercel/output/static`
-     - **Node.js version**: `18` or `20`
+     - **Node.js version**: `20` (recommended)
 
 3. **Environment Variables** (set in Cloudflare Pages UI):
    ```
@@ -139,11 +139,23 @@ wrangler login
 npm run deploy:cf
 ```
 
-### Local Preview
+### Local Preview & Testing
 ```bash
+# Test build locally
+npm run build:test
+
+# Build and preview
 npm run build:cf
 npm run preview:cf
 ```
+
+### Troubleshooting
+
+If you encounter build errors:
+1. **Clear cache**: Delete `.next` and `.vercel` folders
+2. **Reinstall dependencies**: `rm -rf node_modules && npm install`
+3. **Check Node.js version**: Use Node.js 20+ for best compatibility
+4. **Verify environment variables**: Ensure all API keys are set correctly
 
 ## 🛠️ Development
 
