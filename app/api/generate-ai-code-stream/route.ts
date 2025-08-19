@@ -1012,8 +1012,11 @@ CRITICAL: When files are provided in the context:
                     }
                   }
                   
-                  // Update variables
-                  backendFiles = globalThis.sandboxState.fileCache.files;
+                  // Update variables (null-safe)
+                  const safeCache = globalThis.sandboxState && globalThis.sandboxState.fileCache
+                    ? globalThis.sandboxState.fileCache
+                    : { files: {} } as any;
+                  backendFiles = safeCache.files || {};
                   hasBackendFiles = Object.keys(backendFiles).length > 0;
                   console.log('[generate-ai-code-stream] Updated backend cache with fetched files');
                 }
