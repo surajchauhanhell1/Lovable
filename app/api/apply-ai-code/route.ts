@@ -254,5 +254,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ... existing code ...
+    // For build-time safety, return the parsed results when sandbox exists.
+    return NextResponse.json({
+      success: true,
+      results,
+      explanation: parsed.explanation,
+      structure: parsed.structure,
+      parsedFiles: parsed.files
+    });
+  } catch (error) {
+    console.error('[apply-ai-code] Error:', error);
+    return NextResponse.json({
+      success: false,
+      error: (error as Error).message
+    }, { status: 500 });
+  }
 }
