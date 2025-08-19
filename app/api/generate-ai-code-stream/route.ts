@@ -1246,7 +1246,6 @@ If you're running out of space, generate FEWER files but make them COMPLETE.
 It's better to have 3 complete files than 10 incomplete files.`
             }
           ],
-          maxTokens: 8192, // Reduce to ensure completion
           stopSequences: [] // Don't stop early
           // Note: Neither Groq nor Anthropic models support tool/function calling in this context
           // We use XML tags for package detection instead
@@ -1608,26 +1607,30 @@ Provide the complete file content without any truncation. Include all necessary 
                 // Make a focused API call to complete this specific file
                 // Create a new client for the completion based on the provider
                 let completionClient;
-                if (model.includes('gpt') || model.includes('openai')) {
+                if (model.includes('gpt') || model.startsWith('openai/')) {
                   completionClient = openai;
-                } else if (model.includes('claude')) {
+                } else if (model.includes('claude') || model.startsWith('anthropic/')) {
                   completionClient = anthropic;
+                } else if (model.includes('gemini') || model.startsWith('google/')) {
+                  completionClient = googleGenerativeAI;
+                } else if (model.startsWith('groq/')) {
+                  completionClient = groq;
                 } else {
                   completionClient = groq;
                 }
                 
-                // Normalize model name for the selected provider
+                // Normalize model name for the selected provider (by prefix)
                 let completionModelName = model;
-                if (completionClient === openai && completionModelName.startsWith('openai/')) {
+                if (completionModelName.startsWith('openai/')) {
                   completionModelName = completionModelName.replace('openai/', '');
-                } else if (completionClient === anthropic && completionModelName.startsWith('anthropic/')) {
+                } else if (completionModelName.startsWith('anthropic/')) {
                   completionModelName = completionModelName.replace('anthropic/', '');
-                } else if (completionClient === googleGenerativeAI && completionModelName.startsWith('google/')) {
+                } else if (completionModelName.startsWith('google/')) {
                   completionModelName = completionModelName.replace('google/', '');
-                } else if (completionClient === groq && completionModelName.startsWith('groq/')) {
+                } else if (completionModelName.startsWith('groq/')) {
                   completionModelName = completionModelName.replace('groq/', '');
                 }
-
+                
                 const completionResult = await streamText({
                   model: completionClient(completionModelName),
                   messages: [
@@ -1638,7 +1641,6 @@ Provide the complete file content without any truncation. Include all necessary 
                     { role: 'user', content: completionPrompt }
                   ],
                   temperature: model.startsWith('openai/gpt-5') ? undefined : appConfig.ai.defaultTemperature,
-                  maxTokens: appConfig.ai.truncationRecoveryMaxTokens
                 });
                 
                 // Get the full text from the stream
