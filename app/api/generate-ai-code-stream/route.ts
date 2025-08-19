@@ -164,15 +164,15 @@ export async function POST(request: NextRequest) {
         
         if (isEdit) {
           console.log('[generate-ai-code-stream] Edit mode detected - starting agentic search workflow');
-          console.log('[generate-ai-code-stream] Has fileCache:', !!global.sandboxState?.fileCache);
-          console.log('[generate-ai-code-stream] Has manifest:', !!global.sandboxState?.fileCache?.manifest);
+          console.log('[generate-ai-code-stream] Has fileCache:', !!globalThis.sandboxState?.fileCache);
+          console.log('[generate-ai-code-stream] Has manifest:', !!globalThis.sandboxState?.fileCache?.manifest);
           
-          const manifest: FileManifest | undefined = global.sandboxState?.fileCache?.manifest;
+          const manifest: FileManifest | undefined = globalThis.sandboxState?.fileCache?.manifest;
           
           if (manifest) {
             await sendProgress({ type: 'status', message: '🔍 Creating search plan...' });
             
-            const fileContents = global.sandboxState.fileCache.files;
+            const fileContents = globalThis.sandboxState?.fileCache?.files || {};
             console.log('[generate-ai-code-stream] Files available for search:', Object.keys(fileContents).length);
             
             // STEP 1: Get search plan from AI
