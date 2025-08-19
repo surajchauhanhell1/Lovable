@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "build:cf": "npx @cloudflare/next-on-pages@latest",
+    "preview:cf": "wrangler pages dev .vercel/output/static --compatibility-date=2025-01-30",
     "test:integration": "node tests/e2b-integration.test.js",
     "test:api": "node tests/api-endpoints.test.js",
     "test:code": "node tests/code-execution.test.js",
@@ -44,12 +46,14 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@cloudflare/next-on-pages": "^1.13.6",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.3",
+    "wrangler": "^3.85.0",
     "tailwindcss": "^4.1.11",
     "typescript": "^5"
   }

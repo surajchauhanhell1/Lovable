@@ -7,6 +7,8 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import type { FileManifest } from '@/types/file-manifest';
 
+export const runtime = 'edge';
+
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });

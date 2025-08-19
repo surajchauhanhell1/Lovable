@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 // Function to sanitize smart quotes and other problematic characters
 function sanitizeQuotes(text: string): string {
   return text

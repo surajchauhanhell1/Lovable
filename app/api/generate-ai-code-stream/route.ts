@@ -11,6 +11,8 @@ import { FileManifest } from '@/types/file-manifest';
 import type { ConversationState, ConversationMessage, ConversationEdit } from '@/types/conversation';
 import { appConfig } from '@/config/app.config';
 
+export const runtime = 'edge';
+
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
 });
@@ -911,17 +913,17 @@ CRITICAL: When files are provided in the context:
           }
           
           // Use backend file cache instead of frontend-provided files
-          let backendFiles = global.sandboxState?.fileCache?.files || {};
+          let backendFiles = globalThis.sandboxState?.fileCache?.files || {};
           let hasBackendFiles = Object.keys(backendFiles).length > 0;
           
           console.log('[generate-ai-code-stream] Backend file cache status:');
-          console.log('[generate-ai-code-stream] - Has sandboxState:', !!global.sandboxState);
-          console.log('[generate-ai-code-stream] - Has fileCache:', !!global.sandboxState?.fileCache);
+          console.log('[generate-ai-code-stream] - Has sandboxState:', !!globalThis.sandboxState);
+          console.log('[generate-ai-code-stream] - Has fileCache:', !!globalThis.sandboxState?.fileCache);
           console.log('[generate-ai-code-stream] - File count:', Object.keys(backendFiles).length);
-          console.log('[generate-ai-code-stream] - Has manifest:', !!global.sandboxState?.fileCache?.manifest);
+          console.log('[generate-ai-code-stream] - Has manifest:', !!globalThis.sandboxState?.fileCache?.manifest);
           
           // If no backend files and we're in edit mode, try to fetch from sandbox
-          if (!hasBackendFiles && isEdit && (global.activeSandbox || context?.sandboxId)) {
+          if (!hasBackendFiles && isEdit && (globalThis.activeSandbox || context?.sandboxId)) {
             console.log('[generate-ai-code-stream] No backend files, attempting to fetch from sandbox...');
             
             try {
@@ -936,16 +938,16 @@ CRITICAL: When files are provided in the context:
                   console.log('[generate-ai-code-stream] Successfully fetched', Object.keys(filesData.files).length, 'files from sandbox');
                   
                   // Initialize sandboxState if needed
-                  if (!global.sandboxState) {
-                    global.sandboxState = {
+                  if (!globalThis.sandboxState) {
+                    globalThis.sandboxState = {
                       fileCache: {
                         files: {},
                         lastSync: Date.now(),
                         sandboxId: context?.sandboxId || 'unknown'
                       }
                     } as any;
-                  } else if (!global.sandboxState.fileCache) {
-                    global.sandboxState.fileCache = {
+                  } else if (!globalThis.sandboxState.fileCache) {
+                    globalThis.sandboxState.fileCache = {
                       files: {},
                       lastSync: Date.now(),
                       sandboxId: context?.sandboxId || 'unknown'
@@ -955,14 +957,14 @@ CRITICAL: When files are provided in the context:
                   // Store files in cache
                   for (const [path, content] of Object.entries(filesData.files)) {
                     const normalizedPath = path.replace('/home/user/app/', '');
-                    global.sandboxState.fileCache.files[normalizedPath] = {
+                    globalThis.sandboxState.fileCache.files[normalizedPath] = {
                       content: content as string,
                       lastModified: Date.now()
                     };
                   }
                   
                   if (filesData.manifest) {
-                    global.sandboxState.fileCache.manifest = filesData.manifest;
+                    globalThis.sandboxState.fileCache.manifest = filesData.manifest;
                     
                     // Now try to analyze edit intent with the fetched manifest
                     if (!editContext) {
@@ -993,7 +995,7 @@ CRITICAL: When files are provided in the context:
                   }
                   
                   // Update variables
-                  backendFiles = global.sandboxState.fileCache.files;
+                  backendFiles = globalThis.sandboxState.fileCache.files;
                   hasBackendFiles = Object.keys(backendFiles).length > 0;
                   console.log('[generate-ai-code-stream] Updated backend cache with fetched files');
                 }
@@ -1266,8 +1268,7 @@ It's better to have 3 complete files than 10 incomplete files.`
           // Combine with buffer for tag detection
           const searchText = tagBuffer + text;
           
-          // Log streaming chunks to console
-          process.stdout.write(text);
+          // Logging to stdout is not supported on Cloudflare Workers; omit per-chunk writes
           
           // Check if we're entering or leaving a tag
           const hasOpenTag = /<(file|package|packages|explanation|command|structure|template)\b/.test(text);

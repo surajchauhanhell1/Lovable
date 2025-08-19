@@ -1,0 +1,13 @@
+name = "open-lovable"
+compatibility_date = "2025-01-30"
+
+[vars]
+# Public URL and provider keys (set actual values in Cloudflare Pages UI for security)
+# NEXT_PUBLIC_APP_URL = "https://<your-pages-domain>"
+# E2B_API_KEY = ""
+# FIRECRAWL_API_KEY = ""
+# OPENAI_API_KEY = ""
+# ANTHROPIC_API_KEY = ""
+# GEMINI_API_KEY = ""
+# GROQ_API_KEY = ""
+

@@ -33,7 +33,26 @@ GROQ_API_KEY=your_groq_api_key  # Get from https://console.groq.com (Fast infere
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)  
+Open [http://localhost:3000](http://localhost:3000)
+
+## Deploy on Cloudflare Pages
+
+1. Set environment variables in Pages project settings:
+   - `E2B_API_KEY`, `FIRECRAWL_API_KEY`
+   - At least one of: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`
+   - `NEXT_PUBLIC_APP_URL` pointing to your Pages domain
+
+2. Build settings in Cloudflare Pages:
+   - Build command: `npx @cloudflare/next-on-pages`
+   - Output directory: `.vercel/output/static`
+
+3. Local preview:
+```bash
+npm run build:cf
+npx wrangler pages dev .vercel/output/static --compatibility-date=2025-01-30
+```
+
+API routes run on the Edge runtime via Next.js on Pages.
 
 ## License
 
