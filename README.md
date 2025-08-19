@@ -109,7 +109,7 @@ Try these pre-built examples to see what's possible:
    - Click "Create a project"
    - Connect to GitHub repository: `ai-hub-2/open-lovable`
    - Set build settings:
-     - **Build command**: `npm run build:cf`
+     - **Build command**: `npm run build:pages`
      - **Build output directory**: `.vercel/output/static`
      - **Node.js version**: `20` (recommended)
 

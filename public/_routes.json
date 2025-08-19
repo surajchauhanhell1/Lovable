@@ -1,10 +1,6 @@
 {
   "version": 1,
-  "description": "Custom routing for Open Lovable AI Website Builder",
   "include": [
     "/*"
-  ],
-  "exclude": [
-    "/_next/static/*"
   ]
 }

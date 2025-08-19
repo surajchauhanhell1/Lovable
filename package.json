@@ -16,6 +16,7 @@
     "deploy:cf": "npm run build:cf && wrangler pages deploy .vercel/output/static",
     "deploy:pages": "npm run build:cf",
     "build:test": "npm run build && npx @cloudflare/next-on-pages@latest --dry-run",
+    "build:pages": "npm run build && npx @cloudflare/next-on-pages@latest",
     "test:integration": "node tests/e2b-integration.test.js",
     "test:api": "node tests/api-endpoints.test.js",
     "test:code": "node tests/code-execution.test.js",

@@ -7,6 +7,3 @@ compatibility_flags = ["nodejs_compat"]
 # Enable edge routes that were stubbed for build stability
 ENABLE_APPLY_AI_CODE_STREAM = "true"
 ENABLE_DETECT_INSTALL = "true"
-
-[build]
-command = "npm run build:cf"
