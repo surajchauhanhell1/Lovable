@@ -1,20 +1,23 @@
 # syntax=docker/dockerfile:1.7
-FROM node:20.18.0-slim AS deps
+FROM node:20.18.0 AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-FROM node:20.18.0-slim AS build
+FROM node:20.18.0 AS build
 WORKDIR /app
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# 重新安装并重建 lightningcss 以获取匹配当前镜像的二进制
+RUN rm -rf node_modules/lightningcss && npm install --force lightningcss && npm rebuild lightningcss
 RUN npm run build
 
-FROM node:20.18.0-slim AS runner
+FROM node:20.18.0 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=80
-ENV NEXT_TELEMETRY_DISABLED=1
+
 COPY package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 RUN npm prune --omit=dev
