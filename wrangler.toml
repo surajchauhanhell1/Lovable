@@ -11,3 +11,7 @@ pages_build_output_dir = ".vercel/output/static"
 # ANTHROPIC_API_KEY = ""
 # GEMINI_API_KEY = ""
 # GROQ_API_KEY = ""
+
+# Enable edge routes that were stubbed for build stability
+ENABLE_APPLY_AI_CODE_STREAM = "true"
+ENABLE_DETECT_INSTALL = "true"
